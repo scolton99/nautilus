@@ -31,10 +31,10 @@ extern "C" {
 
 struct cpu;
 
-#define __movop_1 movb
-#define __movop_2 movw
-#define __movop_4 movl
-#define __movop_8 movq
+#define __movop_1 lb
+#define __movop_2 lh
+#define __movop_4 lw
+#define __movop_8 ld
 #define __cmpop_1 cmpxchgb
 #define __cmpop_2 cmpxchgw
 #define __cmpop_4 cmpxchgl

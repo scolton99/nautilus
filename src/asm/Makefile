@@ -1,9 +1,11 @@
-obj-y += smpboot.o \
+ifndef NAUT_CONFIG_RISCV
+	obj-y += smpboot.o \
 		 excp_early.o \
 		 thread_lowlevel.o \
 		 setjmp_low.o \
 		 timing_loops.o \
 		 string_lowlevel.o
+endif
 
 obj-$(NAUT_CONFIG_FIBER_ENABLE) += fiber_lowlevel.o
 

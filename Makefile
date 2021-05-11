@@ -358,8 +358,8 @@ COMMON_FLAGS :=-fno-omit-frame-pointer \
 			   -fno-stack-protector \
 			   -fno-strict-aliasing \
                            -fno-strict-overflow \
-			   -mno-red-zone \
-			   -mcmodel=large
+			   # -mno-red-zone \
+			   # -mcmodel=large
 
 
 

@@ -7,7 +7,7 @@ obj-y += \
         gc/  \
 	rt/ \
         net/ \
-	acpi/ \
+# 	acpi/ \
 	test/  
 
 obj-$(NAUT_CONFIG_CXX_SUPPORT) += cxx/
