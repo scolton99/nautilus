@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <khale@cs.iit.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -23,7 +23,7 @@
 #ifndef __CPU_H__
 #define __CPU_H__
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -106,7 +106,7 @@ struct nk_regs {
 #define PAUSE_WHILE(x) \
     while ((x)) { \
         asm volatile("pause"); \
-    } 
+    }
 
 #ifndef NAUT_CONFIG_XEON_PHI
 #define mbarrier()    asm volatile("mfence":::"memory")
@@ -120,7 +120,7 @@ struct nk_regs {
     }
 
 
-static inline ulong_t 
+static inline ulong_t
 read_cr0 (void)
 {
     ulong_t ret;
@@ -200,6 +200,48 @@ write_cr8 (ulong_t data)
 }
 
 
+#ifdef NAUT_CONFIG_RISCV
+static inline uint8_t
+inb (uint64_t addr)
+{
+    uint8_t ret;
+    return ret;
+}
+
+
+static inline uint16_t
+inw (uint64_t addr)
+{
+    uint16_t ret;
+    return ret;
+}
+
+
+static inline uint32_t
+inl (uint64_t addr)
+{
+    uint32_t ret;
+    return ret;
+}
+
+
+static inline void
+outb (uint8_t val, uint64_t addr)
+{
+}
+
+
+static inline void
+outw (uint16_t val, uint64_t addr)
+{
+}
+
+
+static inline void
+outl (uint32_t val, uint64_t addr)
+{
+}
+#else
 static inline uint8_t
 inb (uint16_t port)
 {
@@ -209,7 +251,7 @@ inb (uint16_t port)
 }
 
 
-static inline uint16_t 
+static inline uint16_t
 inw (uint16_t port)
 {
     uint16_t ret;
@@ -218,7 +260,7 @@ inw (uint16_t port)
 }
 
 
-static inline uint32_t 
+static inline uint32_t
 inl (uint16_t port)
 {
     uint32_t ret;
@@ -227,35 +269,36 @@ inl (uint16_t port)
 }
 
 
-static inline void 
+static inline void
 outb (uint8_t val, uint16_t port)
 {
     asm volatile ("outb %0, %1"::"a" (val), "dN" (port));
 }
 
 
-static inline void 
+static inline void
 outw (uint16_t val, uint16_t port)
 {
     asm volatile ("outw %0, %1"::"a" (val), "dN" (port));
 }
 
 
-static inline void 
+static inline void
 outl (uint32_t val, uint16_t port)
 {
     asm volatile ("outl %0, %1"::"a" (val), "dN" (port));
 }
+#endif
 
 
-static inline void 
+static inline void
 sti (void)
 {
     asm volatile ("sti" : : : "memory");
 }
 
 
-static inline void 
+static inline void
 cli (void)
 {
     asm volatile ("cli" : : : "memory");
@@ -270,7 +313,7 @@ rdtsc (void)
     return lo | ((uint64_t)(hi) << 32);
 }
 
-#ifdef NAUT_CONFIG_XEON_PHI 
+#ifdef NAUT_CONFIG_XEON_PHI
 #define rdtscp() rdtsc
 #else
 
@@ -285,7 +328,7 @@ rdtscp (void)
 #endif
 
 
-static inline uint64_t 
+static inline uint64_t
 read_rflags (void)
 {
     uint64_t ret;
@@ -294,13 +337,13 @@ read_rflags (void)
 }
 
 static inline void
-halt (void) 
+halt (void)
 {
     asm volatile ("hlt");
 }
 
 
-static inline void 
+static inline void
 invlpg (unsigned long addr)
 {
     asm volatile("invlpg (%0)" ::"r" (addr) : "memory");
@@ -308,7 +351,7 @@ invlpg (unsigned long addr)
 
 
 static inline void
-wbinvd (void) 
+wbinvd (void)
 {
     asm volatile("wbinvd" : : : "memory");
 }
@@ -316,16 +359,16 @@ wbinvd (void)
 
 static inline void clflush(void *ptr)
 {
-    __asm__ __volatile__ ("clflush (%0); " 
+    __asm__ __volatile__ ("clflush (%0); "
 			  : : "r"(ptr) : "memory");
-    
+
 }
 
 static inline void clflush_unaligned(void *ptr, int size)
 {
     clflush(ptr);
-    if ((addr_t)ptr % size) { 
-	// ptr is misaligned, so be paranoid since we 
+    if ((addr_t)ptr % size) {
+	// ptr is misaligned, so be paranoid since we
 	// may be spanning a cache line
 	clflush((void*)((addr_t)ptr+size-1));
     }
@@ -339,6 +382,14 @@ static inline void clflush_unaligned(void *ptr, int size)
  * address in *all* processes).
  *
  */
+#ifdef NAUT_CONFIG_RISCV
+static inline void
+tlb_flush(void)
+{
+  // the zero, zero means flush all TLB entries.
+  asm volatile("sfence.vma zero, zero");
+}
+#else
 static inline void
 tlb_flush (void)
 {
@@ -351,6 +402,7 @@ tlb_flush (void)
         :: "memory"
     );
 }
+#endif
 
 
 static inline void io_delay(void)
@@ -377,8 +429,8 @@ static void udelay(uint_t n) {
 }
 #endif
 
-    
-#ifdef __cplusplus 
+
+#ifdef __cplusplus
 }
 #endif
 

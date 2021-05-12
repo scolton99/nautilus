@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -49,9 +49,18 @@ struct cpu;
 #define __stringify(x) #x
 #define __percpu_seg %%gs
 
-
 #include <nautilus/nautilus.h>
 
+#ifdef NAUT_CONFIG_RISCV
+#define __per_cpu_get(var, n)                                        \
+    ({                                                               \
+    typeof(((struct cpu*)0)->var) __r;                             \
+    asm volatile (__xpand_str(__movop_##n) "  " __xpand_str(__percpu_seg)":%[_o], %[_r]"  \
+                  : [_r] "=r" (__r)                                  \
+                  : [_o] "n" (offsetof(struct cpu, var)));           \
+    __r;                                                             \
+    })
+#else
 #define __per_cpu_get(var, n)                                        \
     ({                                                               \
     typeof(((struct cpu*)0)->var) __r;                             \
@@ -60,7 +69,8 @@ struct cpu;
                   : [_o] "n" (offsetof(struct cpu, var)));           \
     __r;                                                             \
     })
-    
+#endif
+
 
 /* KCH NOTE: var needs to be in the cpu struct */
 #define per_cpu_get(var)           \
@@ -118,7 +128,7 @@ do { \
     } \
      } while (0)
 
-    
+
 #define my_cpu_id() per_cpu_get(id)
 
 #include <nautilus/msr.h>
