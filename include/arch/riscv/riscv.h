@@ -1,3 +1,6 @@
+#ifndef RISCV_H
+#define RISCV_H
+
 #include <nautilus/naut_types.h>
 
 // which hart (core) is this?
@@ -354,3 +357,5 @@ sfence_vma()
 
 typedef uint64_t pte_t;
 typedef uint64_t *pagetable_t; // 512 PTEs
+
+#endif /* RISCV_H */

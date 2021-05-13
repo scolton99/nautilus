@@ -72,6 +72,68 @@ struct nk_xcall {
 #endif
 
 struct cpu {
+#ifdef NAUT_CONFIG_RISCV
+    struct nk_thread * cur_thread;
+    // track whether we are in an interrupt, nested or otherwise
+    // this is intended for use by the scheduler (any scheduler)
+    uint32_t interrupt_nesting_level;
+    // track whether the scheduler (any scheduler) should be able to preempt
+    // the current thread (whether cooperatively or via any
+    uint32_t preempt_disable_level;
+
+    // Track statistics of interrupts and exceptions
+    // these counts are updated by the low-level interrupt handling code
+    uint64_t interrupt_count;
+    uint64_t exception_count;
+
+    // this field is only used if aspace are enabled
+    struct nk_aspace    *cur_aspace;
+
+    #if NAUT_CONFIG_FIBER_ENABLE
+    struct nk_fiber_percpu_state *f_state; /* Fiber state for each CPU */
+    #endif
+
+    #ifdef NAUT_CONFIG_WATCHDOG
+    uint64_t watchdog_count; /* Number of times the watchdog timer has been triggered */
+    #endif
+
+    cpu_id_t id;
+    uint32_t lapic_id;
+    uint32_t enabled;
+    uint32_t is_bsp;
+    uint32_t cpu_sig;
+    uint32_t feat_flags;
+
+    volatile uint32_t booted;
+
+    struct apic_dev * apic;
+
+    struct sys_info * system;
+
+    spinlock_t lock;
+
+    struct nk_sched_percpu_state *sched_state;
+
+    nk_queue_t * xcall_q;
+    struct nk_xcall xcall_nowait_info;
+
+    ulong_t cpu_khz;
+
+    /* NUMA info */
+    struct nk_topo_params * tp;
+    struct nk_cpu_coords * coord;
+    struct numa_domain * domain;
+
+    struct kmem_data kmem;
+
+
+    struct nk_rand_info * rand;
+
+    /* temporary */
+#ifdef NAUT_CONFIG_PROFILE
+    struct nk_instr_data * instr_data;
+#endif
+#else
     struct nk_thread * cur_thread;             /* +0  KCH: this must be first! */
     // track whether we are in an interrupt, nested or otherwise
     // this is intended for use by the scheduler (any scheduler)
@@ -131,6 +193,7 @@ struct cpu {
     /* temporary */
 #ifdef NAUT_CONFIG_PROFILE
     struct nk_instr_data * instr_data;
+#endif
 #endif
 };
 

@@ -31,14 +31,10 @@ extern "C" {
 
 struct cpu;
 
-#define __movop_1 csrr
-#define __movop_2 csrr
-#define __movop_4 csrr
-#define __movop_8 csrr
-#define __cmpop_1 cmpxchgb
-#define __cmpop_2 cmpxchgw
-#define __cmpop_4 cmpxchgl
-#define __cmpop_8 cmpxchgq
+#define __movop_4 lw
+#define __movop_8 ld
+#define __cmpop_4 amoswap.w
+#define __cmpop_8 amoswap.d
 
 #define __areg a0
 
@@ -51,10 +47,14 @@ struct cpu;
 
 #define __per_cpu_get(var, n)                                        \
     ({                                                               \
-    typeof(((struct cpu*)0)->var) __r;                             \
-    asm volatile (__xpand_str(__movop_##n) "  %[_r], "__xpand_str(__percpu_seg)  \
+    uint64_t __c;                                                    \
+    asm volatile("csrr %[_c], "__xpand_str(__percpu_seg)             \
+                  : [_c] "=r" (__c));                                \
+    typeof(((struct cpu*)0)->var) __r;                               \
+    asm volatile (__xpand_str(__movop_##n) " %[_r], %[_o](%[_c])"    \
                   : [_r] "=r" (__r)                                  \
-                  : [_o] "n" (offsetof(struct cpu, var)));           \
+                  : [_c] "r" (__c),                                  \
+                    [_o] "n"  (offsetof(struct cpu, var)));          \
     __r;                                                             \
     })
 
@@ -64,12 +64,6 @@ struct cpu;
     ({                      \
      typeof(((struct cpu*)0)->var) __r; \
      switch(sizeof(__r)) { \
-        case 1: \
-            __r = (typeof(__r)) __per_cpu_get(var,1); \
-            break;\
-        case 2:\
-            __r = (typeof(__r)) __per_cpu_get(var,2); \
-            break; \
         case 4: \
             __r = (typeof(__r)) __per_cpu_get(var,4); \
             break; \
@@ -84,13 +78,15 @@ struct cpu;
 
 #define __per_cpu_put(var, newval, n) \
 do {\
-     asm volatile (__xpand_str(__movop_##n) " "  __xpand_str(__percpu_seg)":%P[_o], " __xpand_str(__areg_##n) ";\n" \
-                   "1:\n\t " __xpand_str(__cmpop_##n) " %[newv],"  __xpand_str(__percpu_seg) ":%P[_o];\n"     \
-                   "\tjnz 1b;\n" \
-                   : /* no outputs */ \
-                   : [_o] "n" (offsetof(struct cpu, var)), \
-                     [newv] "r" (newval) \
-                   : "rax", "memory"); \
+    uint64_t __c;                                                          \
+    asm volatile("csrr %[_c], "__xpand_str(__percpu_seg)                   \
+                  : [_c] "=r" (__c));                                      \
+    asm volatile (__xpand_str(__cmpop_##n) " zero, %[_v], %[_o](%[_c])"    \
+                   : /* no outputs */                                      \
+                   : [_o] "n" (offsetof(struct cpu, var)),                 \
+                     [_c] "r" (__c),                                       \
+                     [_v] "r" (newval)                                     \
+                   : "zero", "memory");                                    \
 } while (0)
 
 
@@ -98,12 +94,6 @@ do {\
 do { \
      typeof(&((struct cpu*)0)->var) __r; \
      switch (sizeof(__r)) { \
-         case 1: \
-            __per_cpu_put(var,newval,1); \
-            break; \
-         case 2: \
-            __per_cpu_put(var,newval,2); \
-            break; \
          case 4: \
             __per_cpu_put(var,newval,4); \
             break; \

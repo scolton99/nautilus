@@ -28,78 +28,43 @@ extern "C" {
 #endif
 
 #include <nautilus/naut_types.h>
+#include <arch/riscv/riscv.h>
 
 ulong_t nk_detect_cpu_freq(uint32_t);
-uint8_t nk_is_amd(void);
-uint8_t nk_is_intel(void);
-
-
-#define RFLAGS_CF   (1 << 0)
-#define RFLAGS_PF   (1 << 2)
-#define RFLAGS_AF   (1 << 4)
-#define RFLAGS_ZF   (1 << 6)
-#define RFLAGS_SF   (1 << 7)
-#define RFLAGS_TF   (1 << 8)
-#define RFLAGS_IF   (1 << 9)
-#define RFLAGS_DF   (1 << 10)
-#define RFLAGS_OF   (1 << 11)
-#define RFLAGS_IOPL (3 << 12)
-#define RFLAGS_VM   ((1 << 17) | RFLAGS_IOPL)
-#define RFLAGS_VIF  (1 << 19)
-#define RFLAGS_VIP  (1 << 20)
-
-#define CR0_PE 1
-#define CR0_MP 2
-#define CR0_EM (1<<2)
-#define CR0_TS (1<<3)
-#define CR0_NE (1<<5)
-#define CR0_WP (1<<16)
-#define CR0_AM (1<<18)
-#define CR0_NW (1<<29)
-#define CR0_CD (1<<30)
-#define CR0_PG (1<<31)
-
-#define CR4_VME        1
-#define CR4_PVI        2
-#define CR4_TSD        (1<<2)
-#define CR4_DE         (1<<3)
-#define CR4_PSE        (1<<4)
-#define CR4_PAE        (1<<5)
-#define CR4_MCE        (1<<6)
-#define CR4_PGE        (1<<7)
-#define CR4_PCE        (1<<8)
-#define CR4_OSFXSR     (1<<9)
-#define CR4_OSXMMEXCPT (1<<10)
-#define CR4_VMXE       (1<<13)
-#define CR4_XMXE       (1<<14)
-#define CR4_FSGSBASE   (1<<16)
-#define CR4_PCIDE      (1<<17)
-#define CR4_OSXSAVE    (1<<18)
-#define CR4_SMEP       (1<<20)
 
 struct nk_regs {
-    ulong_t r15;
-    ulong_t r14;
-    ulong_t r13;
-    ulong_t r12;
-    ulong_t r11;
-    ulong_t r10;
-    ulong_t r9;
-    ulong_t r8;
-    ulong_t rbp;
-    ulong_t rdi;
-    ulong_t rsi;
-    ulong_t rdx;
-    ulong_t rcx;
-    ulong_t rbx;
-    ulong_t rax;
-    ulong_t vector;
-    ulong_t err_code;
-    ulong_t rip;
-    ulong_t cs;
-    ulong_t rflags;
-    ulong_t rsp;
-    ulong_t ss;
+  /*   0 */ ulong_t zero;
+  /*   8 */ ulong_t ra;
+  /*  16 */ ulong_t sp;
+  /*  24 */ ulong_t gp;
+  /*  32 */ ulong_t tp;
+  /*  40 */ ulong_t t0;
+  /*  48 */ ulong_t t1;
+  /*  56 */ ulong_t t2;
+  /*  64 */ ulong_t s0;
+  /*  72 */ ulong_t s1;
+  /*  80 */ ulong_t a0;
+  /*  88 */ ulong_t a1;
+  /*  96 */ ulong_t a2;
+  /* 104 */ ulong_t a3;
+  /* 112 */ ulong_t a4;
+  /* 120 */ ulong_t a5;
+  /* 128 */ ulong_t a6;
+  /* 136 */ ulong_t a7;
+  /* 144 */ ulong_t s2;
+  /* 152 */ ulong_t s3;
+  /* 160 */ ulong_t s4;
+  /* 168 */ ulong_t s5;
+  /* 176 */ ulong_t s6;
+  /* 184 */ ulong_t s7;
+  /* 192 */ ulong_t s8;
+  /* 200 */ ulong_t s9;
+  /* 208 */ ulong_t s10;
+  /* 216 */ ulong_t s11;
+  /* 224 */ ulong_t t3;
+  /* 232 */ ulong_t t4;
+  /* 240 */ ulong_t t5;
+  /* 248 */ ulong_t t6;
 };
 
 
@@ -120,145 +85,60 @@ struct nk_regs {
     }
 
 
-static inline ulong_t
-read_cr0 (void)
-{
-    ulong_t ret;
-    asm volatile ("mov %%cr0, %0" : "=r"(ret));
-    return ret;
-}
-
-
-static inline void
-write_cr0 (ulong_t data)
-{
-    asm volatile ("mov %0, %%cr0" : : "r"(data));
-}
-
-
-static inline ulong_t
-read_cr2 (void)
-{
-    ulong_t ret;
-    asm volatile ("mov %%cr2, %0" : "=r"(ret));
-    return ret;
-}
-
-
-static inline void
-write_cr2 (ulong_t data)
-{
-    asm volatile ("mov %0, %%cr2" : : "r"(data));
-}
-
-
-static inline ulong_t
-read_cr3 (void)
-{
-    ulong_t ret;
-    asm volatile ("mov %%cr3, %0" : "=r"(ret));
-    return ret;
-}
-
-
-static inline void
-write_cr3 (ulong_t data)
-{
-    asm volatile ("mov %0, %%cr3" : : "r"(data));
-}
-
-
-static inline ulong_t
-read_cr4 (void)
-{
-    ulong_t ret;
-    asm volatile ("mov %%cr4, %0" : "=r"(ret));
-    return ret;
-}
-
-
-static inline void
-write_cr4 (ulong_t data)
-{
-    asm volatile ("mov %0, %%cr4" : : "r"(data));
-}
-
-
-static inline ulong_t
-read_cr8 (void)
-{
-    ulong_t ret;
-    asm volatile ("mov %%cr8, %0" : "=r"(ret));
-    return ret;
-}
-
-
-static inline void
-write_cr8 (ulong_t data)
-{
-    asm volatile ("mov %0, %%cr8" : : "r"(data));
-}
-
-
 static inline uint8_t
-inb (uint16_t port)
+inb (uint64_t addr)
 {
     uint8_t ret;
-    asm volatile ("inb %1, %0":"=a" (ret):"dN" (port));
+    asm volatile ("lb  %[_r], 0(%[_a])"
+                  : [_r] "=r" (ret)
+                  : [_a] "r" (addr));
     return ret;
 }
 
 
 static inline uint16_t
-inw (uint16_t port)
+inw (uint64_t addr)
 {
     uint16_t ret;
-    asm volatile ("inw %1, %0" : "=a" (ret):"dN" (port));
     return ret;
 }
 
 
 static inline uint32_t
-inl (uint16_t port)
+inl (uint64_t addr)
 {
     uint32_t ret;
-    asm volatile ("inl %1, %0" : "=a"(ret) : "dN" (port));
     return ret;
 }
 
 
 static inline void
-outb (uint8_t val, uint16_t port)
+outb (uint8_t val, uint64_t addr)
 {
-    asm volatile ("outb %0, %1"::"a" (val), "dN" (port));
 }
 
 
 static inline void
-outw (uint16_t val, uint16_t port)
+outw (uint16_t val, uint64_t addr)
 {
-    asm volatile ("outw %0, %1"::"a" (val), "dN" (port));
 }
-
 
 static inline void
-outl (uint32_t val, uint16_t port)
+outl (uint32_t val, uint64_t addr)
 {
-    asm volatile ("outl %0, %1"::"a" (val), "dN" (port));
 }
-
 
 static inline void
 sti (void)
 {
-    asm volatile ("sti" : : : "memory");
+    intr_on();
 }
 
 
 static inline void
 cli (void)
 {
-    asm volatile ("cli" : : : "memory");
+    intr_off();
 }
 
 
@@ -270,9 +150,6 @@ rdtsc (void)
     return lo | ((uint64_t)(hi) << 32);
 }
 
-#ifdef NAUT_CONFIG_XEON_PHI
-#define rdtscp() rdtsc
-#else
 
 static inline uint64_t
 rdtscp (void)
@@ -281,8 +158,6 @@ rdtscp (void)
     asm volatile("rdtscp" : "=a"(lo), "=d"(hi));
     return lo | ((uint64_t)(hi) << 32);
 }
-
-#endif
 
 
 static inline uint64_t
@@ -340,16 +215,10 @@ static inline void clflush_unaligned(void *ptr, int size)
  *
  */
 static inline void
-tlb_flush (void)
+tlb_flush(void)
 {
-    uint64_t tmpreg;
-
-    asm volatile(
-        "movq %%cr3, %0;  # flush TLB \n"
-        "movq %0, %%cr3;              \n"
-        : "=r" (tmpreg)
-        :: "memory"
-    );
+  // the zero, zero means flush all TLB entries.
+  asm volatile("sfence.vm");
 }
 
 

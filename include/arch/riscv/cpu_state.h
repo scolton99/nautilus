@@ -115,8 +115,8 @@ static inline int in_interrupt_context()
 
 static inline uint8_t irqs_enabled (void)
 {
-    uint64_t rflags = read_rflags();
-    return (rflags & RFLAGS_IF) != 0;
+    intr_on();
+    return 0;
 }
 
 static inline uint8_t irq_disable_save (void)

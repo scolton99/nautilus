@@ -23,11 +23,10 @@
 #define __NAUTILUS_MAIN__
 
 #include <nautilus/nautilus.h>
-#include <nautilus/paging.h>
 #include <nautilus/idt.h>
 #include <nautilus/spinlock.h>
 #include <nautilus/mb_utils.h>
-#include <nautilus/cpu.h>
+#include <arch/riscv/cpu.h>
 #include <nautilus/msr.h>
 #include <nautilus/mtrr.h>
 #include <nautilus/cpuid.h>
@@ -46,7 +45,6 @@
 #include <nautilus/idle.h>
 #include <arch/riscv/percpu.h>
 #include <nautilus/errno.h>
-#include <nautilus/fpu.h>
 #include <nautilus/random.h>
 #include <nautilus/acpi.h>
 #include <nautilus/atomic.h>
@@ -77,7 +75,7 @@
 #include <net/collective/ethernet/ethernet_collective.h>
 #endif
 
-#include <dev/apic.h>
+// #include <dev/apic.h>
 #include <dev/pci.h>
 #include <dev/hpet.h>
 #include <dev/ioapic.h>
