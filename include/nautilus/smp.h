@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -23,7 +23,7 @@
 #ifndef __SMP_H__
 #define __SMP_H__
 
-#ifndef __ASSEMBLER__ 
+#ifndef __ASSEMBLER__
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,7 +97,7 @@ struct cpu {
     #endif
 
     cpu_id_t id;
-    uint32_t lapic_id;   
+    uint32_t lapic_id;
     uint8_t enabled;
     uint8_t is_bsp;
     uint32_t cpu_sig;
@@ -116,8 +116,8 @@ struct cpu {
     nk_queue_t * xcall_q;
     struct nk_xcall xcall_nowait_info;
 
-    ulong_t cpu_khz; 
-    
+    ulong_t cpu_khz;
+
     /* NUMA info */
     struct nk_topo_params * tp;
     struct nk_cpu_coords * coord;
@@ -165,14 +165,13 @@ int smp_setup_xcall_bsp (struct cpu * core);
 int arch_early_init (struct naut_info * naut);
 
 
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* !__ASSEMBLER__ */
 
-#define AP_TRAMPOLINE_ADDR 0xf000 
+#define AP_TRAMPOLINE_ADDR 0xf000
 #define AP_BOOT_STACK_ADDR 0x1000
 #define AP_INFO_AREA       0x2000
 

@@ -44,7 +44,7 @@
 #include <nautilus/semaphore.h>
 #include <nautilus/msg_queue.h>
 #include <nautilus/idle.h>
-#include <nautilus/percpu.h>
+#include <arch/riscv/percpu.h>
 #include <nautilus/errno.h>
 #include <nautilus/fpu.h>
 #include <nautilus/random.h>

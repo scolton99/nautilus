@@ -241,6 +241,19 @@ static inline void
 outl (uint32_t val, uint64_t addr)
 {
 }
+
+static inline void
+sti (void)
+{
+    intr_on();
+}
+
+
+static inline void
+cli (void)
+{
+    intr_off();
+}
 #else
 static inline uint8_t
 inb (uint16_t port)
@@ -288,7 +301,6 @@ outl (uint32_t val, uint16_t port)
 {
     asm volatile ("outl %0, %1"::"a" (val), "dN" (port));
 }
-#endif
 
 
 static inline void
@@ -303,6 +315,7 @@ cli (void)
 {
     asm volatile ("cli" : : : "memory");
 }
+#endif
 
 
 static inline uint64_t __attribute__((always_inline))
@@ -339,7 +352,7 @@ read_rflags (void)
 static inline void
 halt (void)
 {
-    asm volatile ("hlt");
+    // asm volatile ("hlt");
 }
 
 

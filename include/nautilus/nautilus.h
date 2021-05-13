@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -23,7 +23,12 @@
 #ifndef __NAUTILUS_H__
 #define __NAUTILUS_H__
 
+#ifdef NAUT_CONFIG_RISCV
+#include <arch/riscv/percpu.h>
+#else
 #include <nautilus/percpu.h>
+#endif
+
 #include <nautilus/printk.h>
 #include <dev/serial.h>
 #include <nautilus/naut_types.h>
@@ -141,7 +146,7 @@ do {									\
 
 
 void panic(const char *, ...) __attribute__((noreturn));
-    
+
 #define panic(fmt, args...)         panic("PANIC at %s(%d): " fmt, __FILE__, __LINE__, ##args)
 
 #ifndef NAUT_CONFIG_DEBUG_PRINTS
@@ -254,6 +259,6 @@ nk_get_nautilus_info (void)
 #ifdef __cplusplus
 }
 #endif
-                                               
+
 
 #endif

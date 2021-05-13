@@ -31,45 +31,32 @@ extern "C" {
 
 struct cpu;
 
-#define __movop_1 movb
-#define __movop_2 movw
-#define __movop_4 movl
-#define __movop_8 movq
+#define __movop_1 csrr
+#define __movop_2 csrr
+#define __movop_4 csrr
+#define __movop_8 csrr
 #define __cmpop_1 cmpxchgb
 #define __cmpop_2 cmpxchgw
 #define __cmpop_4 cmpxchgl
 #define __cmpop_8 cmpxchgq
 
-#define __areg_1 %%al
-#define __areg_2 %%ax
-#define __areg_4 %%eax
-#define __areg_8 %%rax
+#define __areg a0
 
 #define __xpand_str(x) __stringify(x)
 #define __stringify(x) #x
-#define __percpu_seg %%gs
+#define __percpu_seg sscratch
 
 #include <nautilus/nautilus.h>
-
-#ifdef NAUT_CONFIG_RISCV
 #include <arch/riscv/riscv.h>
 
-#define __per_cpu_get(var, n)          \
-    ({                                 \
-    typeof(((struct cpu*)0)->var) __r; \
-    __r = nk_get_nautilus_info()->sys.cpus[r_tp()]->var;      \
-    __r;                               \
-    })
-#else
 #define __per_cpu_get(var, n)                                        \
     ({                                                               \
     typeof(((struct cpu*)0)->var) __r;                             \
-    asm volatile (__xpand_str(__movop_##n) "  " __xpand_str(__percpu_seg)":%P[_o], %[_r]"  \
+    asm volatile (__xpand_str(__movop_##n) "  %[_r], "__xpand_str(__percpu_seg)  \
                   : [_r] "=r" (__r)                                  \
                   : [_o] "n" (offsetof(struct cpu, var)));           \
     __r;                                                             \
     })
-#endif
 
 
 /* KCH NOTE: var needs to be in the cpu struct */
