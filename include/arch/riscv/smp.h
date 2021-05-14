@@ -72,21 +72,21 @@ struct nk_xcall {
 #endif
 
 struct cpu {
-    struct nk_thread * cur_thread;             /* +0  KCH: this must be first! */
+    struct nk_thread * cur_thread;
     // track whether we are in an interrupt, nested or otherwise
     // this is intended for use by the scheduler (any scheduler)
-    uint16_t interrupt_nesting_level;          /* +8  PAD: DO NOT MOVE */
+    uint32_t interrupt_nesting_level;
     // track whether the scheduler (any scheduler) should be able to preempt
     // the current thread (whether cooperatively or via any
-    uint16_t preempt_disable_level;            /* +10 PAD: DO NOT MOVE */
+    uint32_t preempt_disable_level;
 
     // Track statistics of interrupts and exceptions
     // these counts are updated by the low-level interrupt handling code
-    uint64_t interrupt_count;                  /* +16 PAD: DO NOT MOVE */
-    uint64_t exception_count;                  /* +24 PAD: DO NOT MOVE */
+    uint64_t interrupt_count;
+    uint64_t exception_count;
 
     // this field is only used if aspace are enabled
-    struct nk_aspace    *cur_aspace;            /* +32 PAD: DO NOT MOVE */
+    struct nk_aspace    *cur_aspace;
 
     #if NAUT_CONFIG_FIBER_ENABLE
     struct nk_fiber_percpu_state *f_state; /* Fiber state for each CPU */
@@ -98,12 +98,12 @@ struct cpu {
 
     cpu_id_t id;
     uint32_t lapic_id;
-    uint8_t enabled;
-    uint8_t is_bsp;
+    uint32_t enabled;
+    uint32_t is_bsp;
     uint32_t cpu_sig;
     uint32_t feat_flags;
 
-    volatile uint8_t booted;
+    volatile uint32_t booted;
 
     struct apic_dev * apic;
 

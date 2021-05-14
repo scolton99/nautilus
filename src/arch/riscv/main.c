@@ -43,7 +43,7 @@ main (unsigned long mbd,
 
     // set M Exception Program Counter to main, for mret.
     // requires gcc -mcmodel=medany
-    w_mepc((uint64_t)main);
+    w_mepc((uint64_t)init);
 
     // disable paging for now.
     w_satp(0);
@@ -57,5 +57,6 @@ main (unsigned long mbd,
     int id = r_mhartid();
     w_tp(id);
 
-    init(mbd, magic);
+    // switch to supervisor mode and jump to init().
+    asm volatile("mret");
 }

@@ -40,21 +40,17 @@ struct cpu;
 
 #define __xpand_str(x) __stringify(x)
 #define __stringify(x) #x
-#define __percpu_seg sscratch
+#define __percpu_seg tp
 
 #include <nautilus/nautilus.h>
 #include <arch/riscv/riscv.h>
 
 #define __per_cpu_get(var, n)                                        \
     ({                                                               \
-    uint64_t __c;                                                    \
-    asm volatile("csrr %[_c], "__xpand_str(__percpu_seg)             \
-                  : [_c] "=r" (__c));                                \
     typeof(((struct cpu*)0)->var) __r;                               \
-    asm volatile (__xpand_str(__movop_##n) " %[_r], %[_o](%[_c])"    \
+    asm volatile (__xpand_str(__movop_##n) " %[_r], %[_o]("__xpand_str(__percpu_seg)")"    \
                   : [_r] "=r" (__r)                                  \
-                  : [_c] "r" (__c),                                  \
-                    [_o] "n"  (offsetof(struct cpu, var)));          \
+                  : [_o] "n"  (offsetof(struct cpu, var)));          \
     __r;                                                             \
     })
 
@@ -78,13 +74,9 @@ struct cpu;
 
 #define __per_cpu_put(var, newval, n) \
 do {\
-    uint64_t __c;                                                          \
-    asm volatile("csrr %[_c], "__xpand_str(__percpu_seg)                   \
-                  : [_c] "=r" (__c));                                      \
-    asm volatile (__xpand_str(__cmpop_##n) " zero, %[_v], %[_o](%[_c])"    \
+    asm volatile (__xpand_str(__cmpop_##n) " zero, %[_v], %[_o]("__xpand_str(__percpu_seg)")" \
                    : /* no outputs */                                      \
                    : [_o] "n" (offsetof(struct cpu, var)),                 \
-                     [_c] "r" (__c),                                       \
                      [_v] "r" (newval)                                     \
                    : "zero", "memory");                                    \
 } while (0)
@@ -108,12 +100,11 @@ do { \
 
 #define my_cpu_id() per_cpu_get(id)
 
-#include <nautilus/msr.h>
 #include <nautilus/smp.h>
 static inline struct cpu*
 get_cpu (void)
 {
-    return (struct cpu*)msr_read(MSR_GS_BASE);
+    return (struct cpu*)r_tp();
 }
 
 #ifdef __cplusplus

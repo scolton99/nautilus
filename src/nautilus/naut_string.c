@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -53,7 +53,7 @@ _L,_L,_L,_L,_L,_L,_L,_P,_L,_L,_L,_L,_L,_L,_L,_L};      /* 240-255 */
 
 
 #ifdef NAUT_CONFIG_USE_NAUT_BUILTINS
-size_t 
+size_t
 strlen (const char * str)
 {
     size_t ret = 0;
@@ -90,7 +90,21 @@ memcpy (void * dst, const void * src, size_t n)
 }
 
 
-void * 
+void *
+memcpy_bwd (unsigned long int dst, unsigned long int src, size_t n)
+{
+    unsigned char * d = (unsigned char *)dst + n;
+    unsigned char * s = (unsigned char *)src + n;
+
+    while (n--) {
+        *d-- = *s--;
+    }
+
+    return (void *) dst;
+}
+
+
+void *
 memset (void * dst, char c, size_t n)
 {
     unsigned char * d = (unsigned char *)dst;
@@ -102,7 +116,7 @@ memset (void * dst, char c, size_t n)
 }
 
 
-void * 
+void *
 memmove (void * dst, const void * src, size_t n)
 {
     unsigned long int dstp = (long int) dst;
@@ -123,29 +137,41 @@ memmove (void * dst, const void * src, size_t n)
         {
             /* Copy just a few bytes to make DSTP aligned.  */
             n -= dstp % OPSIZ;
+            #ifdef NAUT_CONFIG_RISCV
+            memcpy_bwd (dstp, srcp, dstp % OPSIZ);
+            #else
             BYTE_COPY_BWD (dstp, srcp, dstp % OPSIZ);
+            #endif
 
             /* Copy from SRCP to DSTP taking advantage of the known
                alignment of DSTP.  Number of bytes remaining is put
                in the third argument, i.e. in LEN.  This number may
                vary from machine to machine.  */
 
+            #ifdef NAUT_CONFIG_RISCV
+            memcpy_bwd (dstp, srcp, dstp % OPSIZ);
+            #else
             WORD_COPY_BWD (dstp, srcp, n, n);
+            #endif
 
             /* Fall out and copy the tail.  */
         }
 
         /* There are just a few bytes to copy.  Use byte memory operations.  */
+        #ifdef NAUT_CONFIG_RISCV
+        memcpy_bwd (dstp, srcp, dstp % OPSIZ);
+        #else
         BYTE_COPY_BWD (dstp, srcp, n);
+        #endif
     }
 
     return dst;
 }
 
-        
 
-int 
-memcmp (const void * s1_, const void * s2_, size_t n) 
+
+int
+memcmp (const void * s1_, const void * s2_, size_t n)
 {
     const char * s1 = s1_;
     const char * s2 = s2_;
@@ -167,8 +193,8 @@ memcmp (const void * s1_, const void * s2_, size_t n)
 }
 
 
-int 
-strcmp (const char * s1, const char * s2) 
+int
+strcmp (const char * s1, const char * s2)
 {
     while (1) {
     int cmp = (*s1 - *s2);
@@ -183,8 +209,8 @@ strcmp (const char * s1, const char * s2)
 }
 
 
-int 
-strcasecmp (const char * s1, const char * s2) 
+int
+strcasecmp (const char * s1, const char * s2)
 {
     while (1) {
     int cmp = (tolower(*s1) - tolower(*s2));
@@ -199,8 +225,8 @@ strcasecmp (const char * s1, const char * s2)
 }
 
 
-int 
-strncmp (const char * s1, const char * s2, size_t limit) 
+int
+strncmp (const char * s1, const char * s2, size_t limit)
 {
     size_t i = 0;
 
@@ -221,8 +247,8 @@ strncmp (const char * s1, const char * s2, size_t limit)
 }
 
 
-int 
-strncasecmp (const char * s1, const char * s2, size_t limit) 
+int
+strncasecmp (const char * s1, const char * s2, size_t limit)
 {
     size_t i = 0;
 
@@ -242,7 +268,7 @@ strncasecmp (const char * s1, const char * s2, size_t limit)
 }
 
 
-char * 
+char *
 strdup (const char * s)
 {
     const unsigned len = strlen(s) + 1;
@@ -294,8 +320,8 @@ strsep (char ** s, const char * ct)
 }
 
 
-char * 
-strcat (char * s1, const char * s2) 
+char *
+strcat (char * s1, const char * s2)
 {
     char * t1 = s1;
 
@@ -308,8 +334,8 @@ strcat (char * s1, const char * s2)
 }
 
 
-char * 
-strncat (char * s1, const char * s2, size_t limit) 
+char *
+strncat (char * s1, const char * s2, size_t limit)
 {
     size_t i = 0;
     char * t1;
@@ -329,7 +355,7 @@ strncat (char * s1, const char * s2, size_t limit)
 }
 
 
-char * 
+char *
 strcpy (char * dest, const char * src)
 {
     char *ret = dest;
@@ -343,8 +369,8 @@ strcpy (char * dest, const char * src)
 }
 
 
-char * 
-strncpy (char * dest, const char * src, size_t limit) 
+char *
+strncpy (char * dest, const char * src, size_t limit)
 {
     char * ret = dest;
 
@@ -360,8 +386,8 @@ strncpy (char * dest, const char * src, size_t limit)
 }
 
 
-char * 
-strchr (const char * s, int c) 
+char *
+strchr (const char * s, int c)
 {
     while (*s != '\0') {
     if (*s == c)
@@ -372,8 +398,8 @@ strchr (const char * s, int c)
 }
 
 
-char * 
-strrchr (const char * s, int c) 
+char *
+strrchr (const char * s, int c)
 {
     size_t len = strlen(s);
     const char * p = s + len;
@@ -391,8 +417,8 @@ strrchr (const char * s, int c)
 
 #endif  /* USE_NAUT_BUILTINS */
 
-int 
-atoi (const char * buf) 
+int
+atoi (const char * buf)
 {
     int ret = 0;
 
@@ -406,8 +432,8 @@ atoi (const char * buf)
 }
 
 
-int 
-strtoi (const char * nptr, char ** endptr) 
+int
+strtoi (const char * nptr, char ** endptr)
 {
     int ret = 0;
     char * buf = (char *)nptr;
@@ -429,18 +455,18 @@ strtoi (const char * nptr, char ** endptr)
 long int
 atol (const char *nptr)
 {
-  return strtol (nptr, (char **) NULL, 10); 
+  return strtol (nptr, (char **) NULL, 10);
 }
 
 
 extern long simple_strtol(const char*, char**, unsigned int);
-long 
+long
 strtol (const char * str, char ** endptr, int base)
 {
     return simple_strtol(str, endptr, base);
 }
 
-uint64_t 
+uint64_t
 atox (const char * buf) {
     uint64_t ret = 0;
 
@@ -482,7 +508,7 @@ int ultoa(unsigned long x, char *buf, int numdigits)
     for (i=0; i==0 || x  ; i++, x=x/10) {
 	buf[i] = '0' + (x%10);
     }
-    
+
     if (numdigits) {
 	for (; i<numdigits; i++) {
 	    buf[i] = '0';
@@ -589,8 +615,8 @@ strtok(char *s, const char *delim)
 }
 
 
-uint64_t 
-strtox (const char * nptr, char ** endptr) 
+uint64_t
+strtox (const char * nptr, char ** endptr)
 {
     uint64_t ret = 0;
     char * buf = (char *)nptr;
@@ -619,8 +645,8 @@ strtox (const char * nptr, char ** endptr)
 }
 
 
-size_t 
-strspn (const char * s, const char * accept) 
+size_t
+strspn (const char * s, const char * accept)
 {
     int match = 1;
     int cnt = 0;
@@ -643,8 +669,8 @@ strspn (const char * s, const char * accept)
 }
 
 
-size_t 
-strcspn (const char * s, const char * reject) 
+size_t
+strcspn (const char * s, const char * reject)
 {
     int match = 0;
     int cnt = 0;
@@ -688,8 +714,8 @@ strstr (const char * s1, const char * s2)
 }
 
 
-void 
-str_tolower (char * s) 
+void
+str_tolower (char * s)
 {
     while (isalpha(*s)) {
     if (!islower(*s)) {
@@ -700,8 +726,8 @@ str_tolower (char * s)
 }
 
 
-void 
-str_toupper (char * s) 
+void
+str_toupper (char * s)
 {
     while (isalpha(*s)) {
     if (!isupper(*s)) {

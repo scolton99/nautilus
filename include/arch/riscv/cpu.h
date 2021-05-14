@@ -70,14 +70,10 @@ struct nk_regs {
 
 #define PAUSE_WHILE(x) \
     while ((x)) { \
-        asm volatile("pause"); \
+        asm volatile("nop"); \
     }
 
-#ifndef NAUT_CONFIG_XEON_PHI
-#define mbarrier()    asm volatile("mfence":::"memory")
-#else
 #define mbarrier()
-#endif
 
 #define BARRIER_WHILE(x) \
     while ((x)) { \
@@ -100,6 +96,9 @@ static inline uint16_t
 inw (uint64_t addr)
 {
     uint16_t ret;
+    asm volatile ("lh  %[_r], 0(%[_a])"
+                  : [_r] "=r" (ret)
+                  : [_a] "r" (addr));
     return ret;
 }
 
@@ -108,6 +107,9 @@ static inline uint32_t
 inl (uint64_t addr)
 {
     uint32_t ret;
+    asm volatile ("lw  %[_r], 0(%[_a])"
+                  : [_r] "=r" (ret)
+                  : [_a] "r" (addr));
     return ret;
 }
 
@@ -115,17 +117,29 @@ inl (uint64_t addr)
 static inline void
 outb (uint8_t val, uint64_t addr)
 {
+    asm volatile ("sb  %[_v], 0(%[_a])"
+                  :
+                  : [_a] "r" (addr),
+                    [_v] "r" (val));
 }
 
 
 static inline void
 outw (uint16_t val, uint64_t addr)
 {
+    asm volatile ("sh  %[_v], 0(%[_a])"
+                  :
+                  : [_a] "r" (addr),
+                    [_v] "r" (val));
 }
 
 static inline void
 outl (uint32_t val, uint64_t addr)
 {
+    asm volatile ("sw  %[_v], 0(%[_a])"
+                  :
+                  : [_a] "r" (addr),
+                    [_v] "r" (val));
 }
 
 static inline void
@@ -145,9 +159,7 @@ cli (void)
 static inline uint64_t __attribute__((always_inline))
 rdtsc (void)
 {
-    uint32_t lo, hi;
-    asm volatile("rdtsc" : "=a"(lo), "=d"(hi));
-    return lo | ((uint64_t)(hi) << 32);
+    return r_time();
 }
 
 
@@ -171,7 +183,7 @@ read_rflags (void)
 static inline void
 halt (void)
 {
-    asm volatile ("hlt");
+    asm volatile ("wfi");
 }
 
 
@@ -224,28 +236,16 @@ tlb_flush(void)
 
 static inline void io_delay(void)
 {
-    const uint16_t DELAY_PORT = 0x80;
-    asm volatile("outb %%al,%0" : : "dN" (DELAY_PORT));
+    const uint64_t DELAY_PORT = 0x80;
+    outb(0, DELAY_PORT);
 }
 
 
-#ifdef NAUT_CONFIG_XEON_PHI
-/* TODO: assuming 1.1GHz here... */
-static void udelay (uint_t n) {
-    uint32_t cycles = n * 1100;
-    asm volatile ("movl %0, %%eax; delay %%eax;"
-                : /* no output */
-                : "r" (cycles)
-                : "eax");
-}
-#else
 static void udelay(uint_t n) {
     while (n--){
         io_delay();
     }
 }
-#endif
-
 
 #ifdef __cplusplus
 }

@@ -1,18 +1,18 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
  * Copyright (c) 2017, Peter A. Dinda <pdinda@northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -39,7 +39,7 @@ extern "C" {
 #include <nautilus/aspace.h>
 
 typedef uint64_t nk_stack_size_t;
-    
+
 #include <nautilus/scheduler.h>
 
 #define CPU_ANY       -1
@@ -60,9 +60,9 @@ typedef void* nk_thread_id_t;
 typedef void (*nk_thread_fun_t)(void * input, void ** output);
 
 
-// Create thread but do not launch it 
+// Create thread but do not launch it
 int
-nk_thread_create (nk_thread_fun_t fun, 
+nk_thread_create (nk_thread_fun_t fun,
 		  void * input,
 		  void ** output,
 		  uint8_t is_detached,
@@ -76,7 +76,7 @@ nk_thread_run(nk_thread_id_t tid);
 
 // Create and launch a thread
 int
-nk_thread_start (nk_thread_fun_t fun, 
+nk_thread_start (nk_thread_fun_t fun,
                  void * input,
                  void ** output,
                  uint8_t is_detached,
@@ -84,10 +84,10 @@ nk_thread_start (nk_thread_fun_t fun,
                  nk_thread_id_t * tid,
                  int bound_cpu); // -1 => not bound
 
-// fork the current thread 
+// fork the current thread
 //   - parent is returned the tid of child
 //   - child is returned zero
-//   - child runs until it returns from the 
+//   - child runs until it returns from the
 //     current function, which returns into
 //     the thread cleanup logic instead of to
 //     the caller
@@ -130,7 +130,7 @@ nk_thread_id_t nk_get_parent_tid(void);
 
 
 /* thread local storage */
-typedef unsigned int nk_tls_key_t; 
+typedef unsigned int nk_tls_key_t;
 int nk_tls_key_create(nk_tls_key_t * key, void (*destructor)(void*));
 int nk_tls_key_delete(nk_tls_key_t key);
 void* nk_tls_get(nk_tls_key_t key);
@@ -164,9 +164,9 @@ int nk_tls_set(nk_tls_key_t key, const void * val);
 /* thread status */
 typedef enum {
     NK_THR_INIT=0,
-    NK_THR_RUNNING, 
+    NK_THR_RUNNING,
     NK_THR_WAITING,
-    NK_THR_SUSPENDED, 
+    NK_THR_SUSPENDED,
     NK_THR_EXITED,
 } nk_thread_status_t;
 
@@ -192,9 +192,9 @@ struct nk_thread {
     struct list_head children;
     struct list_head child_node;
     unsigned long refcount;
-    
+
     nk_wait_queue_t * waitq;             // wait queue for threads waiting on this thread
-    
+
     int               num_wait;          // how many wait queues this thread is currently on
 
     // the per-thread default timer is allocated on first use
@@ -213,7 +213,7 @@ struct nk_thread {
     void * output;      // our capture of the thread output (from exit)
     void * input;
     nk_thread_fun_t fun;
-   
+
     struct nk_sched_thread_state *sched_state;
 
     struct nk_virtual_console *vc;
@@ -235,9 +235,9 @@ typedef struct nk_thread nk_thread_t;
 nk_thread_id_t __thread_fork(void);
 
 int
-_nk_thread_init (nk_thread_t * t, 
-		 void * stack, 
-		 uint8_t is_detached, 
+_nk_thread_init (nk_thread_t * t,
+		 void * stack,
+		 uint8_t is_detached,
 		 int bound_cpu, // -1 => not bound
 		 int placement_cpu, // must be >=0 - where thread will go initially
 		 nk_thread_t * parent);
@@ -250,7 +250,11 @@ struct nk_tls {
 
 void nk_tls_test(void);
 
+#ifdef NAUT_CONFIG_RISCV
+#include <arch/riscv/percpu.h>
+#else
 #include <nautilus/percpu.h>
+#endif
 
 static inline nk_thread_t*
 get_cur_thread (void)
@@ -259,7 +263,7 @@ get_cur_thread (void)
 }
 
 static inline void
-put_cur_thread (nk_thread_t * t) 
+put_cur_thread (nk_thread_t * t)
 {
     per_cpu_put(cur_thread, t);
 }
@@ -283,7 +287,7 @@ put_cur_thread (nk_thread_t * t)
     movq %r13, -104(%rsp); \
     movq %r14, -112(%rsp); \
     movq %r15, -120(%rsp); \
-    subq $120, %rsp; 
+    subq $120, %rsp;
 
 #define RESTORE_GPRS() \
     movq (%rsp), %r15; \
@@ -301,7 +305,7 @@ put_cur_thread (nk_thread_t * t)
     movq 96(%rsp), %rcx; \
     movq 104(%rsp), %rbx; \
     movq 112(%rsp), %rax; \
-    addq $120, %rsp; 
+    addq $120, %rsp;
 
 #ifdef __cplusplus
 }

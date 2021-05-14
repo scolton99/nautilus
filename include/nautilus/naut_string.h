@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -108,6 +108,7 @@ char * strstr (const char * haystack, const char * needle);
 #define OP_T_THRES 8
 #define OPSIZ sizeof(unsigned long int)
 
+#ifndef NAUT_CONFIG_RISCV
 #define WORD_COPY_BWD(dst_ep, src_ep, nbytes_left, nbytes)            \
   do                                          \
     {                                         \
@@ -144,6 +145,7 @@ char * strstr (const char * haystack, const char * needle);
       dst_ep += 1;                                \
       src_ep += 1;                                \
     } while (0)
+#endif
 
 #else
 
@@ -207,11 +209,11 @@ void *nk_low_level_memset_word(void *dest, short data, size_t count);
 void *nk_low_level_memcpy(void *dest, char *src, size_t count);
 void *nk_low_level_memcpy_word(void *dest, short *src, size_t count);
 
-			  
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* !__LEGION__ */
 
-#endif 
+#endif

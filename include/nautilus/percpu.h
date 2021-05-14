@@ -51,16 +51,6 @@ struct cpu;
 
 #include <nautilus/nautilus.h>
 
-#ifdef NAUT_CONFIG_RISCV
-#include <arch/riscv/riscv.h>
-
-#define __per_cpu_get(var, n)          \
-    ({                                 \
-    typeof(((struct cpu*)0)->var) __r; \
-    __r = nk_get_nautilus_info()->sys.cpus[r_tp()]->var;      \
-    __r;                               \
-    })
-#else
 #define __per_cpu_get(var, n)                                        \
     ({                                                               \
     typeof(((struct cpu*)0)->var) __r;                             \
@@ -69,7 +59,6 @@ struct cpu;
                   : [_o] "n" (offsetof(struct cpu, var)));           \
     __r;                                                             \
     })
-#endif
 
 
 /* KCH NOTE: var needs to be in the cpu struct */

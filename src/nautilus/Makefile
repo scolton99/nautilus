@@ -3,16 +3,10 @@ obj-y += \
 	printk.o \
 	doprnt.o \
 	vc.o \
-	idt.o \
 	queue.o \
 	irq.o \
 	mb_utils.o \
-	paging.o \
 	naut_string.o \
-	msr.o \
-	cpuid.o \
-	mtrr.o \
-	fpu.o \
 	spinlock.o \
 	ticketlock.o \
 	rwlock.o \
@@ -21,7 +15,6 @@ obj-y += \
 	msg_queue.o \
 	hashtable.o \
 	rbtree.o \
-	random.o \
 	smp.o \
 	idle.o \
 	thread.o \
@@ -58,6 +51,15 @@ obj-y += \
 	getopt.o \
 	cmdline.o
 
+obj-$(!NAUT_CONFIG_RISCV) += \
+	idt.o \
+	paging.o \
+	msr.o \
+	cpuid.o \
+	mtrr.o \
+	fpu.o \
+	random.o \
+
 obj-$(NAUT_CONFIG_PROFILE) += instrument.o
 obj-$(NAUT_CONFIG_XEON_PHI) += sfi.o
 
@@ -77,8 +79,9 @@ obj-$(NAUT_CONFIG_CACHEPART) +=	cachepart.o
 
 obj-$(NAUT_CONFIG_FIBER_ENABLE) += fiber.o
 
-obj-$(NAUT_CONFIG_ASPACES) +=  aspace.o 
+obj-$(NAUT_CONFIG_ASPACES) +=  aspace.o
 
 obj-$(NAUT_CONFIG_PARTITION_SUPPORT) += partition.o
 
 obj-$(NAUT_CONFIG_PROVENANCE) += provenance.o
+

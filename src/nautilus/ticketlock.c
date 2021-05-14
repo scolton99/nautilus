@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xtack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -39,10 +39,14 @@ nk_ticket_lock_deinit (nk_ticket_lock_t * l)
 
 
 inline void __always_inline
-nk_ticket_lock (nk_ticket_lock_t * l) 
+nk_ticket_lock (nk_ticket_lock_t * l)
 {
     NK_PROFILE_ENTRY();
 
+#ifdef NAUT_CONFIG_RISCV
+    uint16_t _ticket = __sync_fetch_and_add(&l->lock.users, 1);
+    while (__atomic_load_n(&l->lock.ticket, 0) != _ticket);
+#else
     asm volatile ("movw $1, %%ax\n\t"
                   "lock xaddw %%ax, %[_users]\n\t"
                   "1:\n\t"
@@ -52,6 +56,7 @@ nk_ticket_lock (nk_ticket_lock_t * l)
                   : [_users] "m" (l->lock.users),
                     [_ticket] "m" (l->lock.ticket)
                   : "ax", "memory");
+#endif
 
     NK_PROFILE_EXIT();
 }
@@ -62,15 +67,20 @@ nk_ticket_unlock (nk_ticket_lock_t * l)
 {
     NK_PROFILE_ENTRY();
 
+#ifdef NAUT_CONFIG_RISCV
+    __sync_fetch_and_add(&l->lock.ticket, 1);
+#else
 #ifndef NAUT_CONFIG_XEON_PHI
     asm volatile ("mfence\n\t"
-#else 
+#else
     asm volatile (
 #endif
                   "addw $1, %[_ticket]"
                   : /* no outputs */
                   : [_ticket] "m" (l->lock.ticket)
                   : "memory");
+#endif
+
 
     NK_PROFILE_EXIT();
 }
@@ -97,6 +107,14 @@ nk_ticket_trylock (nk_ticket_lock_t * l)
 {
     NK_PROFILE_ENTRY();
 
+#ifdef NAUT_CONFIG_RISCV
+    if (__atomic_load_n(&l->lock.ticket, 0) != __atomic_load_n(&l->lock.users, 0)) {
+        NK_PROFILE_EXIT();
+        return -1;
+    }
+    __sync_fetch_and_add(&l->lock.ticket, 1);
+    return 0;
+#else
     uint16_t me = l->lock.users;
     uint16_t menew = me + 1;
     uint32_t cmp = ((uint32_t) me << 16) + me;
@@ -109,4 +127,5 @@ nk_ticket_trylock (nk_ticket_lock_t * l)
     NK_PROFILE_EXIT();
 
     return -1;
+#endif
 }
