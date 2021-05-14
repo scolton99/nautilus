@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xtack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -66,24 +66,17 @@ struct block {
  * If it's called on the same region of memory simultaneously, the effect
  * may be that only one operation succeeds.
  */
-static inline void 
+static inline void
 __set_bit (ulong_t nr, volatile void * addr)
 {
-    
-    __asm__ __volatile__ (
-        "btsq %1,%0"
-        :"+m" (*(volatile long*)addr)
-        :"r" (nr) : "memory");
+    set_bit(nr, addr);
 }
 
 
-static inline void 
+static inline void
 __clear_bit (ulong_t nr, volatile void * addr)
 {
-    __asm__ __volatile__ (
-        "btrq %1,%0"
-        :"+m" (*(volatile long*)addr)
-        :"r" (nr));
+    clear_bit(nr, addr);
 }
 
 static inline void setb(ulong_t nr, volatile char *addr)
@@ -122,7 +115,7 @@ block_to_id (struct buddy_mempool *mp, struct block *block)
               "    MemPool Size:    0x%lx\n"
               "    Min Order:       %u\n"
               "    Num Blocks:      0x%lx\n"
-              "    Block ID :       0x%lx\n", 
+              "    Block ID :       0x%lx\n",
               mp->base_addr,
               1UL<<mp->pool_order,
               mp->min_order,
@@ -229,7 +222,7 @@ buddy_init (ulong_t base_addr,
     /* Allocate a list for every order up to the maximum allowed order */
     mp->avail = mm_boot_alloc((pool_order + 1) * sizeof(struct list_head));
 
-    if (!mp->avail) { 
+    if (!mp->avail) {
 	ERROR_PRINT("Cannot allocate list heads\n");
 	return NULL;
     }
@@ -244,7 +237,7 @@ buddy_init (ulong_t base_addr,
     mp->num_blocks = (1UL << pool_order) / (1UL << min_order);
     mp->tag_bits   = mm_boot_alloc(BITS_TO_LONGS(mp->num_blocks) * sizeof(long));
 
-    if (!mp->tag_bits) { 
+    if (!mp->tag_bits) {
 	ERROR_PRINT("Could not allocate bitmap for mempool\n");
 	return NULL;
     }
@@ -320,7 +313,7 @@ buddy_alloc (struct buddy_mempool *mp, ulong_t order)
 	    BUDDY_DEBUG("Inserted buddy block %p into order %lu\n",buddy_block,j);
             list_add(&buddy_block->link, &mp->avail[j]);
         }
-	
+
 	block->order = j;
 
 	BUDDY_DEBUG("Returning block %p which is in memory pool %p-%p\n",block,mp->base_addr,mp->base_addr+(1ULL << mp->pool_order));
@@ -401,7 +394,7 @@ buddy_free(
         ++order;
         block->order = order;
     }
-    
+
     /* Add the (possibly coalesced) block to the appropriate free list */
     block->order = order;
 
@@ -415,8 +408,8 @@ buddy_free(
     list_add(&block->link, &mp->avail[order]);
 
     BUDDY_DEBUG("block at %p of order %lu being made available\n",block,block->order);
-    
-    if (block->order==-1) { 
+
+    if (block->order==-1) {
 	ERROR_PRINT("FAIL: block order went nuts\n");
 	ERROR_PRINT("mp->base_addr=%p mp->num_blocks=%lu  mp->min_order=%lu, block=%p\n",mp->base_addr,mp->num_blocks, mp->min_order,block);
 	panic("Block order\n");
@@ -461,20 +454,20 @@ static int _buddy_sanity_check(struct buddy_mempool *mp, struct buddy_pool_stats
 	    struct block *block = list_entry(entry, struct block, link);
 	    //nk_vc_printf("order %lu block %lu\n",i, num_blocks);
 	    //nk_vc_printf("entry %p - block %p order %lx\n",entry, block,block->order);
-	    if ((uint64_t)block<(uint64_t)mp->base_addr || 
-		(uint64_t)block>=(uint64_t)(mp->base_addr+(1ULL<<mp->pool_order))) { 
+	    if ((uint64_t)block<(uint64_t)mp->base_addr ||
+		(uint64_t)block>=(uint64_t)(mp->base_addr+(1ULL<<mp->pool_order))) {
 		ERROR_PRINT("BLOCK %p IS OUTSIDE OF POOL RANGE (%p-%p)\n", block,
 			    mp->base_addr,(mp->base_addr+(1ULL<<mp->pool_order)));
 		rc|=-1;
 		break;
 	    }
-	    if (block->order != i) { 
+	    if (block->order != i) {
 		ERROR_PRINT("BLOCK %p IS OF INCORRECT ORDER (%lu)\n", block, block->order);
 		ERROR_PRINT("FIRST WORDS: 0x%016lx 0x%016lx 0x%016lx 0x%016lx\n", ((uint64_t*)block)[0],((uint64_t*)block)[1],((uint64_t*)block)[2],((uint64_t*)block)[3]);
 		rc|=-1;
 		break;
 	    }
-	    if (!is_available(mp,block)) { 
+	    if (!is_available(mp,block)) {
 		ERROR_PRINT("BLOCK %p IS NOT MARKED AVAILABLE BUT IS ON FREE LIST\n", block);
 		ERROR_PRINT("FIRST WORDS: 0x%016lx 0x%016lx 0x%016lx 0x%016lx\n", ((uint64_t*)block)[0],((uint64_t*)block)[1],((uint64_t*)block)[2],((uint64_t*)block)[3]);
 		rc|=-1;
@@ -485,22 +478,22 @@ static int _buddy_sanity_check(struct buddy_mempool *mp, struct buddy_pool_stats
 
 	//nk_vc_printf("%lu blocks at order %lu\n",num_blocks,i);
 
-	if (min_alloc==0) { 
+	if (min_alloc==0) {
 	    min_alloc = 1ULL << mp->min_order ;
 	}
-	if (num_blocks>0) { 
+	if (num_blocks>0) {
 	    max_alloc = 1ULL << i;
 	}
 
 	total_blocks += num_blocks;
 	total_bytes += num_blocks * (1ULL << i);
     }
-    
+
     stats->total_blocks_free = total_blocks;
     stats->total_bytes_free = total_bytes;
     stats->min_alloc_size = min_alloc;
     stats->max_alloc_size = max_alloc;
-    
+
     spin_unlock_irq_restore(&mp->lock,flags);
 
     return rc;

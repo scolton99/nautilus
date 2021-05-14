@@ -1,11 +1,11 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
@@ -13,7 +13,7 @@
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
  * Copyright (c) 2018, Peter Dinda <pdinda@northwestern.edu>
  * Copyright (c) 2018, The Interweaving Project <http://interweaving.org>
- *                     The V3VEE Project  <http://www.v3vee.org> 
+ *                     The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -39,7 +39,7 @@
 
 #ifndef NAUT_CONFIG_DEBUG_TIMERS
 #undef DEBUG_PRINT
-#define DEBUG_PRINT(fmt, args...) 
+#define DEBUG_PRINT(fmt, args...)
 #endif
 
 #define ERROR(fmt, args...) ERROR_PRINT("timer: " fmt, ##args)
@@ -70,14 +70,14 @@ nk_timer_t *nk_timer_create(char *name)
 {
     char buf[NK_TIMER_NAME_LEN];
     char mbuf[NK_WAIT_QUEUE_NAME_LEN];
-    
+
     struct nk_timer *t = malloc(sizeof(struct nk_timer));
-    
-    if (!t) { 
+
+    if (!t) {
 	ERROR("Timer allocation failed\n");
 	return 0;
     }
-    
+
     memset(t,0,sizeof(struct nk_timer));
 
     if (!name) {
@@ -87,11 +87,11 @@ nk_timer_t *nk_timer_create(char *name)
 
     strncpy(t->name,name,NK_TIMER_NAME_LEN);
     t->name[NK_TIMER_NAME_LEN-1] = 0;
-    
+
     snprintf(mbuf,NK_WAIT_QUEUE_NAME_LEN,"%s-wait",t->name);
     t->waitq = nk_wait_queue_create(mbuf);
 
-    if (!t->waitq) { 
+    if (!t->waitq) {
 	ERROR("Timer allocation of thread queue failed\n");
 	free(t);
 	return 0;
@@ -99,35 +99,35 @@ nk_timer_t *nk_timer_create(char *name)
 
     INIT_LIST_HEAD(&t->node);
     INIT_LIST_HEAD(&t->active_node);
-    
-    
+
+
     STATE_LOCK_CONF;
 
     STATE_LOCK();
     list_add_tail(&t->node,&timer_list);
     STATE_UNLOCK();
-    
+
     return t;
 }
 
 void nk_timer_destroy(nk_timer_t *t)
 {
     STATE_LOCK_CONF;
-    
-    nk_timer_cancel(t); // remove from active list 
+
+    nk_timer_cancel(t); // remove from active list
     nk_wait_queue_destroy(t->waitq);
-    
+
     STATE_LOCK();
     list_del_init(&t->node); // remove from timer list
     STATE_UNLOCK();
-    
+
     free(t);
 }
 
-int nk_timer_set(nk_timer_t *t, 
-		 uint64_t ns, 
+int nk_timer_set(nk_timer_t *t,
+		 uint64_t ns,
 		 uint64_t flags,
-		 void (*callback)(void *p), 
+		 void (*callback)(void *p),
 		 void *p,
 		 uint32_t cpu)
 {
@@ -138,12 +138,12 @@ int nk_timer_set(nk_timer_t *t,
     if (oldstate == NK_TIMER_ACTIVE) {
 	ERROR("Weird - setting active timer %s\n", t->name);
     }
-    
+
     t->flags = flags ;
     t->time_ns = nk_sched_get_realtime() + ns;
     t->callback = callback;
     t->priv = p;
-    if (cpu==NK_TIMER_CALLBACK_THIS_CPU) { 
+    if (cpu==NK_TIMER_CALLBACK_THIS_CPU) {
 	t->cpu = my_cpu_id();
     } else {
 	t->cpu = cpu;
@@ -167,7 +167,7 @@ int nk_timer_set(nk_timer_t *t,
 }
 
 
-int nk_timer_reset(nk_timer_t *t, 
+int nk_timer_reset(nk_timer_t *t,
 		   uint64_t ns)
 {
     int oldstate;
@@ -177,7 +177,7 @@ int nk_timer_reset(nk_timer_t *t,
     if (oldstate == NK_TIMER_ACTIVE) {
 	ERROR("Weird - resetting active timer %s\n", t->name);
     }
-    
+
     t->time_ns = nk_sched_get_realtime() + ns;
 
     DEBUG("reset %s : state=%s flags=0x%llx (%s%s%s), time=%lluns, callback=%p priv=%p cpu=%lu\n",
@@ -201,7 +201,7 @@ int nk_timer_start(nk_timer_t *t)
 {
     ACTIVE_LOCK_CONF;
     int was_active=0;
-    
+
     ACTIVE_LOCK();
     if (t->state == NK_TIMER_ACTIVE) {
 	// do not add it again if it's already been started...
@@ -213,14 +213,14 @@ int nk_timer_start(nk_timer_t *t)
     }
     ACTIVE_UNLOCK();
 
-    if (was_active) { 
+    if (was_active) {
 	ERROR("Weird:  started already active timer %s\n",t->name);
     } else {
 	DEBUG("start %s\n",t->name);
     }
 
     return 0;
-}    
+}
 
 int nk_timer_cancel(nk_timer_t *t)
 {
@@ -229,14 +229,14 @@ int nk_timer_cancel(nk_timer_t *t)
 
     ACTIVE_LOCK();
     // we may not be active - only delete if we are
-    if (t->state == NK_TIMER_ACTIVE) { 
+    if (t->state == NK_TIMER_ACTIVE) {
 	list_del_init(&t->active_node);
 	was_active=1;
     }
     t->state = was_active ? NK_TIMER_SIGNALLED : NK_TIMER_INACTIVE;
     ACTIVE_UNLOCK();
     // now do handling that does not require the lock
-    if (was_active) { 
+    if (was_active) {
 	DEBUG("canceling %s\n",t->name);
 	if (t->flags & NK_TIMER_WAIT_ALL) {
 	    DEBUG("waking all thread timer %p %s waitqueue %p %s \n", t, t->name, t->waitq, t->waitq->name);
@@ -274,18 +274,22 @@ int nk_timer_wait(nk_timer_t *t)
 	ERROR("waiting on inactive timer %s\n",t->name);
 	return -1;
     }
-    
+
     if (t->flags & NK_TIMER_CALLBACK) {
 	ERROR("trying to wait on a callback timer\n");
 	return -1;
     }
-    
+
     while (!check(t)) {
 	if (!(t->flags & NK_TIMER_SPIN)) {
            DEBUG("going to sleep on wait queue timer %p %s waitqueue %p %s \n", t, t->name, t->waitq, t->waitq->name);
 	    nk_wait_queue_sleep_extended(t->waitq, check, t);
 	} else {
+#ifdef NAUT_CONFIG_RISCV
+	    asm volatile ("nop");
+#else
 	    asm volatile ("pause");
+#endif
 	}
 	//DEBUG("try again\n");
     }
@@ -311,21 +315,21 @@ nk_timer_t *nk_timer_get_thread_default()
     return thread->timer;
 }
 
-static int _sleep(uint64_t ns, int spin) 
+static int _sleep(uint64_t ns, int spin)
 {
     nk_timer_t *t = nk_timer_get_thread_default();
 
-    if (!t) { 
+    if (!t) {
         ERROR("No timer available in sleep\n");
 	return -1;
     }
 
-    if (nk_timer_set(t, 
+    if (nk_timer_set(t,
 		     ns,
 		     spin ? NK_TIMER_SPIN : NK_TIMER_WAIT_ALL,
 		     0,
 		     0,
-		     0)) { 
+		     0)) {
 	ERROR("Failed to set timer in sleep\n");
 	return -1;
     }
@@ -336,7 +340,7 @@ static int _sleep(uint64_t ns, int spin)
     }
 
     return nk_timer_wait(t);
-    
+
 }
 
 int nk_sleep(uint64_t ns) { return _sleep(ns,0); }
@@ -353,7 +357,7 @@ int nk_delay(uint64_t ns) { return _sleep(ns,1); }
 uint64_t nk_timer_handler (void)
 {
     uint32_t my_cpu = my_cpu_id();
-    
+
     if (my_cpu!=0) {
 	//DEBUG("update: cpu %d - ignored/infinity\n",my_cpu);
 	return -1;  // infinitely far in the future
@@ -367,17 +371,17 @@ uint64_t nk_timer_handler (void)
     INIT_LIST_HEAD(&expired_list);
 
     ACTIVE_LOCK();
-    
+
     // first, find expired timers with lock held
     list_for_each_entry_safe(cur, temp, &active_timer_list, active_node) {
 	//DEBUG("considering %s\n",cur->name);
-	if (now >= cur->time_ns) { 
+	if (now >= cur->time_ns) {
 	    //DEBUG("found expired timer %s\n",cur->name);
 	    cur->state = NK_TIMER_SIGNALLED;
 	    list_del_init(&cur->active_node);
 	    list_add_tail(&cur->active_node, &expired_list);
 	}
-	    
+
     }
     ACTIVE_UNLOCK();
 
@@ -386,22 +390,22 @@ uint64_t nk_timer_handler (void)
     list_for_each_entry_safe(cur, temp, &expired_list, active_node) {
 	//DEBUG("handle expired timer %s\n",cur->name);
 	list_del_init(&cur->active_node);
-	
+
 	if (cur->flags & NK_TIMER_WAIT_ONE) {
-	    
+
 	    //DEBUG("waking one thread\n");
 	    nk_wait_queue_wake_one(cur->waitq);
-	    
+
 	} else if (cur->flags & NK_TIMER_WAIT_ALL) {
-	    
+
 	    //DEBUG("waking all threads\n");
 	    nk_wait_queue_wake_all(cur->waitq);
-	    
+
 	} else if (cur->flags & NK_TIMER_CALLBACK) {
-	    
+
 	    uint32_t cur_cpu, min_cpu, max_cpu;
 	    int wait = !!(cur->flags & NK_TIMER_CALLBACK_WAIT);
-	    
+
 	    if (cur->cpu == NK_TIMER_CALLBACK_ALL_CPUS) {
 		min_cpu = 0;
 		max_cpu = nk_get_num_cpus() - 1;
@@ -409,9 +413,9 @@ uint64_t nk_timer_handler (void)
 		min_cpu = cur->cpu;
 		max_cpu = cur->cpu;
 	    }
-	    
+
 	    for (cur_cpu=min_cpu; cur_cpu<= max_cpu; cur_cpu++) {
-		
+
 		if ((cur_cpu == my_cpu) && (cur->flags & NK_TIMER_CALLBACK_LOCAL_SYNC)) {
 		    cur->callback(cur->priv);
 		} else {
@@ -431,7 +435,7 @@ uint64_t nk_timer_handler (void)
     ACTIVE_LOCK();
     list_for_each_entry_safe(cur, temp, &active_timer_list, active_node) {
 	//DEBUG("check timer %s\n",cur->name);
-	if (cur->time_ns < earliest) { 
+	if (cur->time_ns < earliest) {
 	    earliest = cur->time_ns;
 	}
     }
@@ -440,7 +444,7 @@ uint64_t nk_timer_handler (void)
     //DEBUG("update: earliest is %llu\n",earliest);
 
     now = nk_sched_get_realtime();
-    
+
     return earliest > now ? earliest-now : 0;
 }
 
@@ -469,7 +473,7 @@ void nk_timer_dump_timers()
     nk_timer_t *t=0;
 
     STATE_LOCK_CONF;
-    
+
     STATE_LOCK();
     list_for_each(cur,&timer_list) {
 	t = list_entry(cur,nk_timer_t, node);

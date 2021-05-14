@@ -1,18 +1,18 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2018, Peter A. Dinda <pdinda@northwestern.edu>
  * Copyright (c) 2018, The Interweaving Project <http://interweaving.org>
- *                     The V3VEE Project  <http://www.v3vee.org> 
+ *                     The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -30,14 +30,14 @@
 
 
 /*
-  This is an extended wait queue implementation that makes it possible 
-  for a thread to wait on multiple queues at once. 
+  This is an extended wait queue implementation that makes it possible
+  for a thread to wait on multiple queues at once.
 
   IMPORTANT DEBUGGING NOTE: Wait queues are involved in non-polled
   serial output once serial_init() has finished at boot. Debugging
   output with serial mirroring uses serial output.  As a consequence,
   debug output within the wait queue implementation itself can easily
-  cause deadlock.  Even polled serial output uses a lock.  
+  cause deadlock.  Even polled serial output uses a lock.
   IF YOU MUST HAVE DEBUG OUTPUT BE VERY CAREFUL.
 
  */
@@ -93,7 +93,7 @@ void  nk_wait_queue_destroy(nk_wait_queue_t *q)
  * @q: the thread queue to sleep on
  * @cond_check - condition to check (return nonzero if true) atomically with queuing
  * @state - state for cond_check
- *  
+ *
  */
 void nk_wait_queue_sleep_extended(nk_wait_queue_t *wq, int (*cond_check)(void *state), void *state)
 {
@@ -110,7 +110,7 @@ void nk_wait_queue_sleep_extended(nk_wait_queue_t *wq, int (*cond_check)(void *s
     // we have raced with with it and it has just finished
     // we therefore need to double check the condition now
 
-    if (cond_check && cond_check(state)) { 
+    if (cond_check && cond_check(state)) {
 	// The condition we are waiting on has been achieved
 	// already.  The waker is either done waking up
 	// threads or has not yet started.  In either case
@@ -119,31 +119,35 @@ void nk_wait_queue_sleep_extended(nk_wait_queue_t *wq, int (*cond_check)(void *s
 	WQ_DEBUG("Thread %lu (%s) has fast wakeup on queue %sw - condition already met\n", t->tid, t->name, wq->name);
 	return;
     } else {
-	// the condition still is not signalled 
+	// the condition still is not signalled
 	// or the condition is not important, therefore
-	// while still holding the lock, put ourselves on the 
+	// while still holding the lock, put ourselves on the
 	// wait queue
 
 	WQ_DEBUG("Thread %lu (%s) is queueing itself on queue %s\n", t->tid, t->name, wq->name);
-	
+
 	t->status = NK_THR_WAITING;
 	if (nk_wait_queue_enqueue_extended(wq,t,1)) {
 	    WQ_ERROR("Cannot enqueue thread onto wait queue....\n");
 	    panic("Cannot enqueue thread onto wait queue....\n");
 	    return;
 	}
-	
+
 	// force arch and compiler to do above writes
-	__asm__ __volatile__ ("mfence" : : : "memory"); 
+#ifdef NAUT_CONFIG_RISCV
+	__asm__ __volatile__ ("fence.i" : : : "memory");
+#else
+	__asm__ __volatile__ ("mfence" : : : "memory");
+#endif
 
 	// We now keep interrupts off across the context switch
 	// since we now allow an interrupt handler to do a wake
 	// and we do not want to race with it here.
-	
+
 	WQ_DEBUG("Thread %lu (%s) is having the scheduler put itself to sleep on queue %s\n", t->tid, t->name, wq->name);
 
 	// We now get the scheduler to do a context switch
-	// and just after it completes its scheduling pass, 
+	// and just after it completes its scheduling pass,
 	// it will release the wait queue lock for us
 	// it will also reenable preemption on its context switch out
 	// and it will reset interrupts according to the thread it
@@ -155,7 +159,7 @@ void nk_wait_queue_sleep_extended(nk_wait_queue_t *wq, int (*cond_check)(void *s
 	// note that for the duration we were switched out, other threads may have
 	// had interrupts on.
 	irq_enable_restore(flags);
-	
+
 	WQ_DEBUG("Thread %lu (%s) has slow wakeup on queue %s\n", t->tid, t->name, wq->name);
 
 	return;
@@ -178,7 +182,7 @@ static int cond_check_multiple(void *state)
 	WQ_DEBUG("cond check %s\n",o->wq[i]->name);
 	if (o->cond_check && o->cond_check[i]) {
 	    if (o->state && o->state[i]) {
-		if (o->cond_check[i](o->state[i])) { 
+		if (o->cond_check[i](o->state[i])) {
 		    return 1;
 		}
 	    } else {
@@ -215,30 +219,30 @@ void nk_wait_queue_sleep_extended_multiple(int num_wq, nk_wait_queue_t **wq, int
     o.wq = wq;
     o.cond_check = cond_check;
     o.state = state;
-    
+
     WQ_DEBUG("Thread %lu (%s) going to sleep on %d queues:\n", t->tid, t->name, num_wq);
     for (i=0;i<num_wq;i++) {
 	WQ_DEBUG("  queue: %s,  cond_check: %p, state: %p\n", wq[i]->name, cond_check[i], state[i]);
     }
-    
+
     // turn off interrupts on this cpu
     flags = irq_disable_save();
 
     // we now cannot be interrupted or preempted
-    
+
     // Acquire all wait queue locks
     // wait queues must be provided in order to assure that the following
     // cannot deadlock
     for (i=0;i<num_wq;i++) {
 	spin_lock(&wq[i]->lock);
     }
-    
+
     // We now own all the wait queues
 
     // check to see if any condition has been signalled before we actually go to sleep
     // this may have happened because our irq_disable_save and locking of wait queues
     // might have raced with a waker
-    if (cond_check && cond_check_multiple(&o)) { 
+    if (cond_check && cond_check_multiple(&o)) {
 	// At least one of the conditions we are waiting on has been achieved
 	// already.
 	for (i=0;i<num_wq;i++) {
@@ -252,7 +256,7 @@ void nk_wait_queue_sleep_extended_multiple(int num_wq, nk_wait_queue_t **wq, int
 	// we now put ourselves on all the wait queues...
 
 	WQ_DEBUG("Thread %lu (%s) is queueing itself on all the queues\n", t->tid, t->name);
-	
+
 	t->status = NK_THR_WAITING;
 
 	if (nk_wait_queue_enqueue_multiple_extended(num_wq, wq, t, 1)) {
@@ -260,18 +264,22 @@ void nk_wait_queue_sleep_extended_multiple(int num_wq, nk_wait_queue_t **wq, int
 	    panic("Cannot enqueue thread onto one or more wait queues....\n");
 	    return;
 	}
-	
+
 	// force arch and compiler to do above writes
-	__asm__ __volatile__ ("mfence" : : : "memory"); 
+#ifdef NAUT_CONFIG_RISCV
+	__asm__ __volatile__ ("fence.i" : : : "memory");
+#else
+	__asm__ __volatile__ ("mfence" : : : "memory");
+#endif
 
 	// We now keep interrupts off across the context switch
 	// since we now allow an interrupt handler to do a wake
 	// and we do not want to race with it here.
-	
+
 	WQ_DEBUG("Thread %lu (%s) is having the scheduler put itself to sleep on all the queues\n", t->tid, t->name);
 
 	// We now get the scheduler to do a context switch
-	// and just after it completes its scheduling pass, 
+	// and just after it completes its scheduling pass,
 	// it will release all of the wait queue locks for us
 	// it will also reenable preemption on its context switch out
 	// and it will reset interrupts according to the thread it
@@ -286,19 +294,19 @@ void nk_wait_queue_sleep_extended_multiple(int num_wq, nk_wait_queue_t **wq, int
 	//
 	// note that the dequeue will need to reacquire the locks
 	nk_wait_queue_dequeue_multiple_extended(num_wq,wq,t,0);
-	
+
 	// we now need to restore state note that for the duration we
 	// were switched out, other threads may have had interrupts
 	// on.
 	irq_enable_restore(flags);
-	
+
 	WQ_DEBUG("Thread %lu (%s) has slow wakeup on one or more of the queues\n", t->tid, t->name);
 
 	return;
     }
-    
+
 }
-				   
+
 
 void nk_wait_queue_sleep(nk_wait_queue_t *wq)
 {
@@ -310,10 +318,10 @@ void nk_wait_queue_wake_one_extended(nk_wait_queue_t * q, int havelock)
 {
     nk_thread_t * t = 0;
     uint8_t flags=0;
-    
+
     // avoid any output in this function since it can be called by even low-level serial output
 
-    
+
     if (in_interrupt_context()) {
 	//WQ_DEBUG("[Interrupt Context] Thread %lu (%s) is waking one waiter on wait queue %s\n", get_cur_thread()->tid, get_cur_thread()->name, q->name);
     } else {
@@ -325,7 +333,7 @@ void nk_wait_queue_wake_one_extended(nk_wait_queue_t * q, int havelock)
     }
 
     t = nk_wait_queue_dequeue_extended(q, 1);
-    
+
     if (!t) {
         goto out;
     }
@@ -338,7 +346,7 @@ void nk_wait_queue_wake_one_extended(nk_wait_queue_t * q, int havelock)
     if (__sync_bool_compare_and_swap(&t->status, NK_THR_WAITING, NK_THR_SUSPENDED)) {
 	// if we switched it from waiting to suspended, we are responsible for getting
 	// the scheduler involved
-	if (nk_sched_awaken(t, t->current_cpu)) { 
+	if (nk_sched_awaken(t, t->current_cpu)) {
 	    WQ_ERROR("Failed to awaken thread\n");
 	    goto out;
 	}
@@ -383,15 +391,15 @@ void nk_wait_queue_wake_all_extended(nk_wait_queue_t * q, int havelock)
 	if (__sync_bool_compare_and_swap(&t->status, NK_THR_WAITING, NK_THR_SUSPENDED)) {
 	    // if we switched it from waiting to suspended, we are responsible for getting
 	    // the scheduler involved
-	    if (nk_sched_awaken(t, t->current_cpu)) { 
+	    if (nk_sched_awaken(t, t->current_cpu)) {
 		WQ_ERROR("Failed to awaken thread\n");
 		goto out;
 	    }
-	    
+
 	    nk_sched_kick_cpu(t->current_cpu);
 
 	    //WQ_DEBUG("Waking all waiters on wait queue %s woke thread %lu (%s)\n", q->name,t->tid,t->name);
-	    
+
 	} else {
 
 	    //WQ_DEBUG("Waking all waiters on wait %s found that thread %lu (%s) was already awake\n", q->name, t->tid, t->name);
@@ -415,7 +423,7 @@ int nk_wait_queue_init()
 
 void nk_wait_queue_deinit()
 {
-    if (!list_empty(&wq_list)) { 
+    if (!list_empty(&wq_list)) {
 	WQ_ERROR("Extant wait queues on deinit\n");
 	return;
     }

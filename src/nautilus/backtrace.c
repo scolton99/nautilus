@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -53,7 +53,7 @@ __do_backtrace (void ** fp, unsigned depth)
     if (!fp || fp >= (void**)nk_get_nautilus_info()->sys.mem.phys_mem_avail) {
         return;
     }
-    
+
     printk("[%2u] RIP: %p RBP: %p\n", depth, *(fp+1), *fp);
 #ifdef NAUT_CONFIG_PROVENANCE
 	print_prov_info((uint64_t) *(fp+1));
@@ -65,7 +65,7 @@ __do_backtrace (void ** fp, unsigned depth)
 /*
  * dump memory in 16 byte chunks
  */
-void 
+void
 nk_dump_mem (const void * addr, ulong_t n)
 {
     int i, j;
@@ -83,12 +83,16 @@ nk_dump_mem (const void * addr, ulong_t n)
 }
 
 
-void 
+void
 nk_stack_dump (ulong_t n)
 {
     void * rsp = NULL;
 
+#ifdef NAUT_CONFIG_RISCV
+    asm volatile ("ld %[_r], sp" : [_r] "=r" (rsp));
+#else
     asm volatile ("movq %%rsp, %[_r]" : [_r] "=r" (rsp));
+#endif
 
     if (!rsp) {
         return;
@@ -100,7 +104,7 @@ nk_stack_dump (ulong_t n)
 }
 
 
-void 
+void
 nk_print_regs (struct nk_regs * r)
 {
     int i = 0;
@@ -119,15 +123,18 @@ nk_print_regs (struct nk_regs * r)
     uint_t  es;
     ulong_t efer;
 
-    printk("Current Thread=0x%x (%p) \"%s\"\n", 
+    printk("Current Thread=0x%x (%p) \"%s\"\n",
             get_cur_thread() ? get_cur_thread()->tid : -1,
             get_cur_thread() ? (void*)get_cur_thread() :  NULL,
             !get_cur_thread() ? "NONE" : get_cur_thread()->is_idle ? "*idle*" : get_cur_thread()->name);
 
-    
+
     printk("[-------------- Register Contents --------------]\n");
+#ifdef NAUT_CONFIG_RISCV
+
+#else
     printk("RIP: %04lx:%016lx\n", r->cs, r->rip);
-    printk("RSP: %04lx:%016lx RFLAGS: %08lx Vector: %08lx Error: %08lx\n", 
+    printk("RSP: %04lx:%016lx RFLAGS: %08lx Vector: %08lx Error: %08lx\n",
             r->ss, r->rsp, r->rflags, r->vector, r->err_code);
     printk("RAX: %016lx RBX: %016lx RCX: %016lx\n", r->rax, r->rbx, r->rcx);
     printk("RDX: %016lx RDI: %016lx RSI: %016lx\n", r->rdx, r->rdi, r->rsi);
@@ -152,13 +159,14 @@ nk_print_regs (struct nk_regs * r)
     asm volatile("movq %%cr4, %0": "=r" (cr4));
     asm volatile("movq %%cr8, %0": "=r" (cr8));
 
-    printk("FS: %016lx(%04x) GS: %016lx(%04x) knlGS: %016lx\n", 
+    printk("FS: %016lx(%04x) GS: %016lx(%04x) knlGS: %016lx\n",
             fs, fsi, gs, gsi, sgs);
-    printk("CS: %04x DS: %04x ES: %04x CR0: %016lx\n", 
+    printk("CS: %04x DS: %04x ES: %04x CR0: %016lx\n",
             cs, ds, es, cr0);
-    printk("CR2: %016lx CR3: %016lx CR4: %016lx\n", 
+    printk("CR2: %016lx CR3: %016lx CR4: %016lx\n",
             cr2, cr3, cr4);
     printk("CR8: %016lx EFER: %016lx\n", cr8, efer);
 
     printk("[-----------------------------------------------]\n");
+#endif
 }

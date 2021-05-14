@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xtack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -48,7 +48,7 @@
 #include <nautilus/fiber.h>
 #endif
 
-#ifdef NAUT_CONFIG_ENABLE_REMOTE_DEBUGGING 
+#ifdef NAUT_CONFIG_ENABLE_REMOTE_DEBUGGING
 #include <nautilus/gdb-stub.h>
 #endif
 
@@ -77,7 +77,7 @@ uint8_t cpu_info_ready = 0;
 
 
 
-int 
+int
 smp_early_init (struct naut_info * naut)
 {
     return arch_early_init(naut);
@@ -85,7 +85,7 @@ smp_early_init (struct naut_info * naut)
 
 
 static int
-init_ap_area (struct ap_init_area * ap_area, 
+init_ap_area (struct ap_init_area * ap_area,
               struct naut_info * naut,
               int core_num)
 {
@@ -120,7 +120,7 @@ init_ap_area (struct ap_init_area * ap_area,
 }
 
 
-static int 
+static int
 smp_wait_for_ap (struct naut_info * naut, unsigned int core_num)
 {
     struct cpu * core = naut->sys.cpus[core_num];
@@ -147,7 +147,7 @@ smp_bringup_aps (struct naut_info * naut)
     uint8_t target_vec     = ap_trampoline >> 12U;
     struct apic_dev * apic = naut->sys.cpus[naut->sys.bsp_id]->apic;
 
-    int status = 0; 
+    int status = 0;
     int err = 0;
     int i, j, maxlvt;
 
@@ -175,7 +175,7 @@ smp_bringup_aps (struct naut_info * naut)
     SMP_DEBUG("Passing AP area at %p\n", (void*)ap_area);
 
     /* START BOOTING AP CORES */
-    
+
     /* we, of course, skip the BSP (NOTE: assuming it's 0...) */
     for (i = 0; i < naut->sys.num_cpus; i++) {
         int ret;
@@ -305,7 +305,7 @@ smp_ap_setup (struct cpu * core)
     // Note that any use of SSE/AVX, for example produced by
     // clang/llvm optimation, that happens before fpu_init will
     // cause a panic.  Initialize FPU ASAP.
-    
+
     // setup IDT
     lidt(&idt_descriptor);
 
@@ -318,13 +318,13 @@ smp_ap_setup (struct cpu * core)
     msr_write(MSR_GS_BASE, (uint64_t)core_addr);
 
     fpu_init(nk_get_nautilus_info(), FPU_AP_INIT);
-    
+
     if (nk_mtrr_init_ap()) {
 	ERROR_PRINT("Could not initialize MTRRs for core %u\n",core->id);
 	return -1;
     }
 
-#ifdef NAUT_CONFIG_ENABLE_REMOTE_DEBUGGING 
+#ifdef NAUT_CONFIG_ENABLE_REMOTE_DEBUGGING
     if (nk_gdb_init_ap() != 0) {
         ERROR_PRINT("Could not initialize remote debugging for core %u\n", core->id);
 	return -1;
@@ -336,14 +336,14 @@ smp_ap_setup (struct cpu * core)
         ERROR_PRINT("Could not set up aspaces for core %u\n",core->id);
     }
 #endif
-    
+
     apic_init(core);
 
     if (smp_xcall_init_queue(core) != 0) {
         ERROR_PRINT("Could not setup xcall for core %u\n", core->id);
         return -1;
     }
-    
+
     extern struct nk_sched_config sched_cfg;
 
     if (nk_sched_init_ap(&sched_cfg) != 0) {
@@ -411,9 +411,9 @@ smp_ap_finish (struct cpu * core)
 
 extern void idle(void* in, void**out);
 
-void 
-smp_ap_entry (struct cpu * core) 
-{ 
+void
+smp_ap_entry (struct cpu * core)
+{
     struct cpu * my_cpu;
     SMP_DEBUG("Core %u starting up\n", core->id);
     if (smp_ap_setup(core) < 0) {
@@ -422,7 +422,7 @@ smp_ap_entry (struct cpu * core)
 
     /* we should now be able to pull our CPU pointer out of GS
      * This is important, because the stack will be clobbered
-     * for the next CPU boot! 
+     * for the next CPU boot!
      */
     my_cpu = get_cpu();
     SMP_DEBUG("CPU (AP) %u operational\n", my_cpu->id);
@@ -430,8 +430,8 @@ smp_ap_entry (struct cpu * core)
     // switch from boot stack to my new stack (allocated in thread_init)
     nk_thread_t * cur = get_cur_thread();
 
-    /* 
-     * we have to call into assembly since GCC 
+    /*
+     * we have to call into assembly since GCC
      * wont let us clobber rbp. Note how we reassign
      * my_cpu. This is so we don't lose it in the
      * switch (it's sitting on the stack!)
@@ -440,7 +440,7 @@ smp_ap_entry (struct cpu * core)
 
     // wait for the other cores and turn on interrupts
     smp_ap_finish(my_cpu);
-    
+
     ASSERT(irqs_enabled());
 
     sti();
@@ -477,16 +477,16 @@ wait_xcall (struct nk_xcall * x)
 
 
 static inline void
-mark_xcall_done (struct nk_xcall * x) 
+mark_xcall_done (struct nk_xcall * x)
 {
     atomic_cmpswap(x->xcall_done, 0, 1);
 }
 
 
 static int
-xcall_handler (excp_entry_t * e, excp_vec_t v, void *state) 
+xcall_handler (excp_entry_t * e, excp_vec_t v, void *state)
 {
-    nk_queue_t * xcq = per_cpu_get(xcall_q); 
+    nk_queue_t * xcq = per_cpu_get(xcall_q);
     struct nk_xcall * x = NULL;
     nk_queue_entry_t * elm = NULL;
 
@@ -506,7 +506,7 @@ xcall_handler (excp_entry_t * e, excp_vec_t v, void *state)
 
         // we ack the IPI before calling the handler funciton,
         // because it may end up blocking (e.g. core barrier)
-        IRQ_HANDLER_END(); 
+        IRQ_HANDLER_END();
 
         x->fun(x->data);
 
@@ -529,11 +529,11 @@ out_err:
 }
 
 
-/* 
+/*
  * smp_xcall
  *
- * initiate cross-core call. 
- * 
+ * initiate cross-core call.
+ *
  * @cpu_id: the cpu to execute the call on
  * @fun: the function to invoke
  * @arg: the argument to the function
@@ -542,7 +542,7 @@ out_err:
  *
  */
 int
-smp_xcall (cpu_id_t cpu_id, 
+smp_xcall (cpu_id_t cpu_id,
            nk_xcall_func_t fun,
            void * arg,
            uint8_t wait)
@@ -576,7 +576,7 @@ smp_xcall (cpu_id_t cpu_id,
 
         xcq = sys->cpus[cpu_id]->xcall_q;
         if (!xcq) {
-            ERROR_PRINT("Attempt by cpu %u to initiate xcall on invalid xcall queue (for cpu %u)\n", 
+            ERROR_PRINT("Attempt by cpu %u to initiate xcall on invalid xcall queue (for cpu %u)\n",
                         my_cpu_id(),
                         cpu_id);
             return -1;

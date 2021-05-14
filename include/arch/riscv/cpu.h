@@ -183,7 +183,7 @@ read_rflags (void)
 static inline void
 halt (void)
 {
-    asm volatile ("wfi");
+    asm volatile ("wfi" : : : "memory");
 }
 
 
@@ -203,8 +203,7 @@ wbinvd (void)
 
 static inline void clflush(void *ptr)
 {
-    __asm__ __volatile__ ("clflush (%0); "
-			  : : "r"(ptr) : "memory");
+   asm volatile("nop");
 
 }
 

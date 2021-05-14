@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <khale@cs.iit.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -46,20 +46,28 @@ get_vendor_string (char name[13])
 }
 
 
-uint8_t 
-nk_is_amd (void) 
+uint8_t
+nk_is_amd (void)
 {
+#ifdef NAUT_CONFIG_RISCV
+    return false;
+#else
     char name[13];
     get_vendor_string(name);
     return !strncmp(name, "AuthenticAMD", 13);
+#endif
 }
 
 uint8_t
 nk_is_intel (void)
 {
+#ifdef NAUT_CONFIG_RISCV
+    return false;
+#else
     char name[13];
     get_vendor_string(name);
     return !strncmp(name, "GenuineIntel", 13);
+#endif
 }
 
 
@@ -127,7 +135,7 @@ nk_topo_same_socket_as_me (struct cpu * other)
     return nk_topo_cpus_share_socket(get_cpu(), other);
 }
 
-static uint8_t (*const cpu_filter_funcs[])(struct cpu*, struct cpu*) = 
+static uint8_t (*const cpu_filter_funcs[])(struct cpu*, struct cpu*) =
 {
     [NK_TOPO_PHYS_CORE_FILT] = nk_topo_cpus_share_phys_core,
     [NK_TOPO_SOCKET_FILT]    = nk_topo_cpus_share_socket,
@@ -150,18 +158,18 @@ nk_topo_map_sibling_cpus (void (func)(struct cpu * cpu, void * state), nk_topo_f
 		if (i == my_cpu_id())
 			continue;
 
-        if (filter == NK_TOPO_ALL_FILT || cpu_filter_funcs[filter](get_cpu(), sys->cpus[i])) 
+        if (filter == NK_TOPO_ALL_FILT || cpu_filter_funcs[filter](get_cpu(), sys->cpus[i]))
             func(sys->cpus[i], state);
     }
 }
 
-void 
+void
 nk_topo_map_core_sibling_cpus (void (func)(struct cpu * cpu, void * state), void * state)
 {
     nk_topo_map_sibling_cpus(func, NK_TOPO_PHYS_CORE_FILT, state);
 }
 
-void 
+void
 nk_topo_map_socket_sibling_cpus (void (func)(struct cpu * cpu, void * state), void * state)
 {
     nk_topo_map_sibling_cpus(func, NK_TOPO_SOCKET_FILT, state);
@@ -180,16 +188,16 @@ handle_cputopotest (char * buf, void * priv)
     if (((aps='a', strcmp(buf,"cputopotest a"))==0) ||
 			((aps='p', strcmp(buf,"cputopotest p"))==0) ||
 			((aps='s', strcmp(buf,"cputopotest s"))==0)) {
-        switch (aps) { 
-            case 'a': 
+        switch (aps) {
+            case 'a':
 				nk_vc_printf("Mapping func to all siblings\n");
                 nk_topo_map_sibling_cpus(topo_test, NK_TOPO_ALL_FILT, NULL);
                 break;
-            case 'p': 
+            case 'p':
 				nk_vc_printf("Mapping func to core siblings\n");
                 nk_topo_map_core_sibling_cpus(topo_test, NULL);
                 break;
-            case 's': 
+            case 's':
 				nk_vc_printf("Mapping func to socket siblings\n");
                 nk_topo_map_socket_sibling_cpus(topo_test, NULL);
                 break;
@@ -219,7 +227,7 @@ nk_register_shell_cmd(cputopo_impl);
  *
  */
 ulong_t
-nk_detect_cpu_freq (uint32_t cpu) 
+nk_detect_cpu_freq (uint32_t cpu)
 {
     uint8_t flags = irq_disable_save();
     ulong_t khz = i8254_calib_tsc();
@@ -243,7 +251,7 @@ handle_regs (char * buf, void * priv)
     extern int nk_interrupt_like_trampoline(void (*)(struct nk_regs *));
     uint64_t tid;
 
-    if (sscanf(buf,"regs %lu",&tid) == 1) { 
+    if (sscanf(buf,"regs %lu",&tid) == 1) {
         nk_thread_t *t = nk_find_thread_by_tid(tid);
         if (!t) {
             nk_vc_printf("No such thread\n");
@@ -276,16 +284,16 @@ handle_in (char * buf, void * priv)
             ((bwdq='d', sscanf(buf,"in d %lx", &addr))==1) ||
             ((bwdq='b', sscanf(buf,"in %lx", &addr))==1)) {
         addr &= 0xffff; // 16 bit address space
-        switch (bwdq) { 
-            case 'b': 
+        switch (bwdq) {
+            case 'b':
                 data = (uint64_t) inb(addr);
                 nk_vc_printf("IO[0x%04lx] = 0x%02lx\n",addr,data);
                 break;
-            case 'w': 
+            case 'w':
                 data = (uint64_t) inw(addr);
                 nk_vc_printf("IO[0x%04lx] = 0x%04lx\n",addr,data);
                 break;
-            case 'd': 
+            case 'd':
                 data = (uint64_t) inl(addr);
                 nk_vc_printf("IO[0x%04lx] = 0x%08lx\n",addr,data);
                 break;
@@ -319,18 +327,18 @@ handle_out (char * buf, void * priv)
             ((bwdq='d', sscanf(buf,"out d %lx %lx", &addr,&data))==2) ||
             ((bwdq='q', sscanf(buf,"out %lx %lx", &addr, &data))==2)) {
         addr &= 0xffff;
-        switch (bwdq) { 
-            case 'b': 
+        switch (bwdq) {
+            case 'b':
                 data &= 0xff;
                 outb((uint8_t) data, (uint16_t)addr);
                 nk_vc_printf("IO[0x%04lx] = 0x%02lx\n",addr,data);
                 break;
-            case 'w': 
+            case 'w':
                 data &= 0xffff;
                 outw((uint16_t) data, (uint16_t)addr);
                 nk_vc_printf("IO[0x%04lx] = 0x%04lx\n",addr,data);
                 break;
-            case 'd': 
+            case 'd':
                 data &= 0xffffffff;
                 outl((uint32_t) data, (uint16_t)addr);
                 nk_vc_printf("IO[0x%04lx] = 0x%08lx\n",addr,data);

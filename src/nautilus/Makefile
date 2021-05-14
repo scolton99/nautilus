@@ -15,7 +15,6 @@ obj-y += \
 	msg_queue.o \
 	hashtable.o \
 	rbtree.o \
-	smp.o \
 	idle.o \
 	thread.o \
         task.o   \
@@ -29,10 +28,7 @@ obj-y += \
 	backtrace.o \
 	cpu.o \
 	acpi.o \
-	numa.o \
 	libccompat.o \
-	nemo.o \
-	pmc.o \
 	setjmp.o \
 	mm/ \
 	dev.o \
@@ -59,6 +55,10 @@ obj-$(!NAUT_CONFIG_RISCV) += \
 	mtrr.o \
 	fpu.o \
 	random.o \
+	smp.o \
+	numa.o \
+	nemo.o \
+	pmc.o \
 
 obj-$(NAUT_CONFIG_PROFILE) += instrument.o
 obj-$(NAUT_CONFIG_XEON_PHI) += sfi.o

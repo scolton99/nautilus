@@ -1,17 +1,17 @@
-/* 
+/*
  * This file is part of the Nautilus AeroKernel developed
- * by the Hobbes and V3VEE Projects with funding from the 
- * United States National  Science Foundation and the Department of Energy.  
+ * by the Hobbes and V3VEE Projects with funding from the
+ * United States National  Science Foundation and the Department of Energy.
  *
  * The V3VEE Project is a joint project between Northwestern University
  * and the University of New Mexico.  The Hobbes Project is a collaboration
- * led by Sandia National Laboratories that includes several national 
+ * led by Sandia National Laboratories that includes several national
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
  * http://xstack.sandia.gov/hobbes
  *
  * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
- * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
+ * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org>
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
@@ -35,7 +35,7 @@ typedef struct nk_barrier nk_barrier_t;
 
 struct nk_barrier {
     spinlock_t lock; /* SLOW */
-    
+
     unsigned remaining;
     unsigned init_count;
 
@@ -68,7 +68,7 @@ typedef struct nk_counting_barrier {
     uint64_t      count[2];
     uint64_t      cur;
 } nk_counting_barrier_t;
-    
+
 
 static inline void nk_counting_barrier_init(nk_counting_barrier_t *b, uint64_t size)
 {
@@ -86,18 +86,31 @@ static inline void nk_counting_barrier(volatile nk_counting_barrier_t *b)
 
     if (old==(b->size-1)) {
         // I'm the last to the party
-	// We need to be sure that these operations occur in order 
+	// We need to be sure that these operations occur in order
 	// and are fully visible in order
+#ifdef NAUT_CONFIG_RISCV
+        *curp ^= 0x1;
+	__asm__ __volatile__ ("fence.i" : : : "memory");
+        *countp = 0;
+	__asm__ __volatile__ ("fence.i" : : : "memory");
+#else
         *curp ^= 0x1;
 	__asm__ __volatile__ ("mfence" : : : "memory");
         *countp = 0;
 	__asm__ __volatile__ ("mfence" : : : "memory");
+#endif
     } else {
         // k1om compiler does not know what "volatile" means
         // hence this hand-coding.
+#ifdef NAUT_CONFIG_RISCV
+        while ( ({ asm volatile ( "ld %0, %1" : "=r"(old) : "m"(*countp) : ); old; }) ) {
+           asm volatile ("nop");
+        }
+#else
 	while ( ({ __asm__ __volatile__( "movq %1, %0" : "=r"(old) : "m"(*countp) : ); old; }) ) {
 	    __asm__ __volatile__ ("pause");
 	}
+#endif
     }
 }
 

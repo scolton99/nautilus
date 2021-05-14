@@ -53,10 +53,6 @@ main (unsigned long mbd,
     w_mideleg(0xffff);
     w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
 
-    // keep each CPU's hartid in its tp register.
-    int id = r_mhartid();
-    w_tp(id);
-
     // switch to supervisor mode and jump to init().
     asm volatile("mret");
 }
