@@ -1,7 +1,4 @@
-obj-$(NAUT_CONFIG_RISCV) += serial.o
-
-ifndef NAUT_CONFIG_RISCV
-obj-y += apic.o \
+obj-$(!NAUT_CONFIG_RISCV) += apic.o \
 	 ioapic.o \
 	 i8254.o \
 	 ps2.o \
@@ -33,5 +30,3 @@ obj-y +=lua_script.o
 endif
 
 obj-$(NAUT_CONFIG_GPIO) += gpio.o
-endif
-

@@ -358,11 +358,12 @@ COMMON_FLAGS :=-fno-omit-frame-pointer \
 			   -fno-stack-protector \
 			   -fno-strict-aliasing \
                            -fno-strict-overflow \
-			   # -mno-red-zone \
-			   # -mcmodel=large
-			   -mcmodel=medany
 
-
+ifdef NAUT_CONFIG_RISCV
+  COMMON_FLAGS += -mcmodel=medany
+else
+  COMMON_FLAGS += -mcmodel=large -mno-red-zone
+endif
 
 ifdef NAUT_CONFIG_USE_GCC
   COMMON_FLAGS += -O2  -fno-delete-null-pointer-checks
@@ -606,7 +607,11 @@ else
   libs-y += $(CROSS_COMPILE)/../lib64/libstdc++.a
 endif
 else
+ifdef NAUT_CONFIG_RISCV
+  libs-y += $(NAUT_CONFIG_TOOLCHAIN_ROOT)/../lib/rv64imac/lp64/libstdc++.a
+else
   libs-y += $(NAUT_CONFIG_TOOLCHAIN_ROOT)/lib64/libstdc++.a
+endif
 endif
 endif # NAUT_CONFIG_CXX_SUPPORT
 

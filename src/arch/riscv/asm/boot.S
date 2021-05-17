@@ -35,7 +35,7 @@
 
 GLOBAL(nautilus_entry)
 
-	la sp, stack0
+	la sp, boot_stack_end
 	li a0, 1024 * 4
 	csrr a1, mhartid
 	addi a1, a1, 1

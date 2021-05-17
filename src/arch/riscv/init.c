@@ -27,9 +27,6 @@
 #include <nautilus/spinlock.h>
 #include <nautilus/mb_utils.h>
 #include <arch/riscv/cpu.h>
-#include <nautilus/msr.h>
-#include <nautilus/mtrr.h>
-#include <nautilus/cpuid.h>
 #include <nautilus/smp.h>
 #include <nautilus/irq.h>
 #include <nautilus/thread.h>
@@ -259,29 +256,14 @@ static int launch_vmm_environment()
 "+===============================================+  \n\n"
 
 
-void *gem5_real_mode_data_ptr=0;
+extern struct naut_info * smp_ap_stack_switch(uint64_t, uint64_t, struct naut_info*);
 
-static char *gem5_autoexec_bat[] = {
-  "cpuid 0 10",
-  "regs",
-  "mtrrs 0",
-  "memi",
-  "cores",
-  "time",
-  "threads",
-  "devs",
-  "pci list",
-  0
-};
-
-static struct multiboot_info gem5_fake_multiboot_info = {
-  .boot_loader = "Gem5 with fakery",
+static struct multiboot_info riscv_fake_multiboot_info = {
+  .boot_loader = "RISCV with fakery",
   .boot_cmd_line = "nautilus.bin",
   .sec_hdr_start = 0,
   .hrt_info = 0
 };
-
-extern struct naut_info * smp_ap_stack_switch(uint64_t, uint64_t, struct naut_info*);
 
 void
 init (unsigned long mbd,
@@ -289,20 +271,11 @@ init (unsigned long mbd,
 {
     struct naut_info * naut = &nautilus_info;
 
-    // At this point, we have no FPU, so we need to be
+     // At this point, we have no FPU, so we need to be
     // sure that nothing we invoke could be using SSE or
     // similar due to compiler optimization
 
     nk_low_level_memset(naut, 0, sizeof(struct naut_info));
-
-    // no vga
-    // vga_early_init();
-
-    // no fp
-    // fpu_init(naut, FPU_BSP_INIT);
-
-    // Now we are safe to use optimized code that relies
-    // on SSE
 
     spinlock_init(&printk_lock);
 
@@ -312,9 +285,6 @@ init (unsigned long mbd,
 
     // Bring serial device up early so we can have output
     serial_early_init();
-
-    nk_mtrr_init();
-
 
 #ifdef NAUT_CONFIG_GPIO
     nk_gpio_init();
@@ -334,25 +304,18 @@ init (unsigned long mbd,
 
     nk_vc_print(NAUT_WELCOME);
 
-    gem5_real_mode_data_ptr = (void*)magic;
-
     detect_cpu();
 
     /* setup the temporary boot-time allocator */
     // this will detect memory using the e820 table, not multiboot */
     mm_boot_init(mbd);
 
-
-    naut->sys.mb_info = &gem5_fake_multiboot_info;
+    naut->sys.mb_info = &riscv_fake_multiboot_info;
 
     nk_acpi_init();
 
     /* enumerate CPUs and initialize them */
     smp_early_init(naut);
-
-    /* this will populate NUMA-related structures and
-     * also initialize the relevant ACPI tables if they exist */
-    nk_numa_init();
 
     /* this will finish up the identity map */
     nk_paging_init(&(naut->sys.mem), mbd);
@@ -400,12 +363,6 @@ init (unsigned long mbd,
     nk_semaphore_init();
 
     nk_msg_queue_init();
-
-    ps2_init(naut);
-
-
-    pci_init(naut);
-
 
     nk_sched_init(&sched_cfg);
 
@@ -539,7 +496,7 @@ init (unsigned long mbd,
     launch_vmm_environment();
 
 
-    nk_launch_shell("root-shell",0,gem5_autoexec_bat,0);
+    nk_launch_shell("root-shell",0,0,0);
 
     runtime_init();
 

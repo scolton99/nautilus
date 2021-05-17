@@ -40,7 +40,7 @@ static inline void *__cpu_state_get_cpu()
 {
     // there must be a smarter way to do this....
     // leaq %gs:... does not do it though
-    return (void *) msr_read(MSR_GS_BASE);
+    return (void *) r_tp();
 }
 
 static inline void preempt_disable()

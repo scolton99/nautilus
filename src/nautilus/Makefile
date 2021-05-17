@@ -2,7 +2,6 @@ obj-y += \
 	fmtout.o \
 	printk.o \
 	doprnt.o \
-	vc.o \
 	queue.o \
 	irq.o \
 	mb_utils.o \
@@ -49,6 +48,7 @@ obj-y += \
 
 obj-$(!NAUT_CONFIG_RISCV) += \
 	idt.o \
+	vc.o \
 	paging.o \
 	msr.o \
 	cpuid.o \
